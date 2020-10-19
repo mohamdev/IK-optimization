@@ -5,15 +5,18 @@
 # Add inputs and outputs from these tool invocations to the build variables 
 CPP_SRCS += \
 ../src/ik-optimization.cpp \
-../src/polynom.cpp 
+../src/polynom.cpp \
+../src/utils.cpp 
 
 OBJS += \
 ./src/ik-optimization.o \
-./src/polynom.o 
+./src/polynom.o \
+./src/utils.o 
 
 CPP_DEPS += \
 ./src/ik-optimization.d \
-./src/polynom.d 
+./src/polynom.d \
+./src/utils.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes

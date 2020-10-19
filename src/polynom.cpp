@@ -3,6 +3,10 @@
  *
  *  Created on: 18 Oct 2020
  *      Author: aladinedev2
+ *
+ *  This file contains all the functions and structures that can be used to instanciate, generate, modify and identify a polynom.
+ *  The polynoms are based on the "polynom" structure described below.
+ *
  */
 #include "polynom.h"
 
