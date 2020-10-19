@@ -14,15 +14,23 @@
 #include <random>
 #include <cmath>
 
-typedef struct _polynom polynom;
+typedef struct _polynom{
+	/*
+	 * This structure represents a polynom with 3 attributes :
+	 * n = the order of the polynom
+	 * coefs = the vector which contains the n+1 coefficients of the polynom
+	 * traj = contains the trajectory of the polynom during a certain duration
+	 * */
+	int n;
+	ScalarVector coefs;
+	ScalarMatrix traj;
+}polynom;
 
-Scalar getPolValueFromCoefs(int const & order, double const & t, ScalarVector const & coefs);
+Scalar getPolValue(double const & t, int const & order, ScalarVector const & coefs);
+Scalar getPolValue(double const& t, double const& startPoint, double const& endPoint, double const& finalT);
 
 polynom generateRandomPol(int const & order, Scalar const & dt, Scalar const & duration);
-
-Scalar getPolValueFromPoints(double const & t, double const& startPoint, double const& endPoint, double const& finalT);
-
-ScalarMatrix generateRandPolTraj(double const & dt, double const & duration, int const & nb_points);
+polynom generateRandomPol(double const & dt, double const & duration, int const & nb_points);
 
 
 #endif /* POLYNOM_H_ */

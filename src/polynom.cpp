@@ -11,20 +11,7 @@
 #include "polynom.h"
 
 
-
-typedef struct _polynom{
-	/*
-	 * This structure represents a polynom with 3 attributes :
-	 * n = the order of the polynom
-	 * coefs = the vector which contains the n+1 coefficients of the polynom
-	 * traj = contains the trajectory of the polynom during a certain duration
-	 * */
-	int n;
-	ScalarVector coefs;
-	ScalarMatrix traj;
-}polynom;
-
-Scalar getPolValueFromCoefs(int const & order, double const & t, ScalarVector const & coefs)
+Scalar getPolValue(double const & t, int const & order,  ScalarVector const & coefs)
 {
 	/*
 	 * This function calculates the value of a polynom of a certain order, at a certain time sample with given coefficients
@@ -41,6 +28,24 @@ Scalar getPolValueFromCoefs(int const & order, double const & t, ScalarVector co
 	{
 		polValue += pow(t,n)*coefs(n);
 	}
+	return polValue;
+}
+
+Scalar getPolValue(double const& t, double const& startPoint, double const& endPoint, double const& finalT)
+{
+	/*This function evaluates the value of a polynom of deg=5 between 2 points at a given moment of time
+	 *INPUTS:
+	 *	t = the value of the time at which we evaluate the polynom
+	 *	startPoint = the starting point of the polynom's trajectory
+	 *	endPoint = the ending point of the polynom's trajectory
+	 *	finalT = the value of the time when the trajectory will reach the ending point
+	 *OUTPUTS:
+	 *	polValue = the value of the polynom at the chosen time value
+	 * */
+
+	Scalar polValue = 0;
+	Scalar D = endPoint - startPoint;
+	polValue = endPoint - (1 - 10*std::pow((t/finalT),3) + 15*pow((t/finalT),4) - 6*pow((t/finalT),5))*D;
 	return polValue;
 }
 
@@ -87,26 +92,16 @@ polynom generateRandomPol(int const & order, Scalar const & dt, Scalar const & d
 	generatedPol.traj = ScalarMatrix::Zero(1,floor(duration/dt));
 	while (i<generatedPol.traj.cols())
 	{
-		generatedPol.traj(0,i) = getPolValueFromCoefs(order, t, coefs);
+		generatedPol.traj(0,i) = getPolValue(t, order, coefs);
 		t += dt;
 		i++;
 	}
 	return generatedPol;
 }
 
-Scalar getPolValueFromPoints(double const& t, double const& startPoint, double const& endPoint, double const& finalT)
-{
-	/*This function evaluates the value of a polynom between 2 points at a given moment of time
-	 *
-	 * */
 
-	Scalar polValue = 0;
-	Scalar D = endPoint - startPoint;
-	polValue = endPoint - (1 - 10*std::pow((t/finalT),3) + 15*pow((t/finalT),4) - 6*pow((t/finalT),5))*D;
-	return polValue;
-}
 
-ScalarMatrix generateRandPolTraj(double const & dt, double const & duration, int const & nb_points)
+polynom generateRandomPol(double const & dt, double const & duration, int const & nb_points)
 {
 	/*
 	 * This function generates a random quintic polynomial trajectory between N(=nb_points) points
@@ -119,6 +114,7 @@ ScalarMatrix generateRandPolTraj(double const & dt, double const & duration, int
 	 * */
 	ScalarMatrix traj = ScalarMatrix::Zero(1, floor(nb_points*duration/dt));
 	double pointsBound = 7.0;
+	polynom pol;
 
 	double t = 0.0;
 	double tf = duration;
@@ -144,13 +140,15 @@ ScalarMatrix generateRandPolTraj(double const & dt, double const & duration, int
 
 		while(t<tf && trajIndex < traj.cols())
 		{
-			traj(0, trajIndex) = getPolValueFromPoints(t, startPoint, endPoint, tf);
+			traj(0, trajIndex) = getPolValue(t, startPoint, endPoint, tf);
 			t += dt;
 			trajIndex++;
 		}
 		tf += duration;
 	}
-	return traj;
+	pol.traj = traj;
+	pol.n = 5;
+	return pol;
 }
 
 
