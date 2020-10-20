@@ -48,41 +48,52 @@ void Polynom::generateRandTraj(double const & dt, double const & duration, int c
 	 * OUTPUT:
 	 *
 	 * */
-	ScalarMatrix traj = ScalarMatrix::Zero(1, floor(nb_points*duration/dt));
+	ScalarMatrix traj = ScalarMatrix::Zero(this->dim, floor(nb_points*duration/dt));
 	double pointsBound = 7.0;
 
-	double t = 0.0;
-	double tf = duration;
-	int trajIndex = 0;
+
 	std::random_device rd;
 	std::mt19937 pointGenerator(rd());
-	double endPoint = 0.0;
-	double startPoint = 0.0;
-	for (int indexPoint = 0; indexPoint < nb_points; indexPoint++)
-	{
-		t = 0.0;
-		std::uniform_real_distribution<double> generatePoint(-pointsBound, pointsBound);
-		if (trajIndex == 0)
+
+	for (int k = 0; k < this->dim; k++){
+		double t = 0.0;
+		double tf = duration;
+		int trajIndex = 0;
+		double endPoint = 0.0;
+		double startPoint = 0.0;
+		for (int indexPoint = 0; indexPoint < nb_points; indexPoint++)
 		{
-			startPoint = generatePoint(pointGenerator);
-			endPoint = generatePoint(pointGenerator);
-		}else
-		{
-			startPoint = endPoint;
-			endPoint = generatePoint(pointGenerator);
-		}
+			t = 0.0;
+			std::uniform_real_distribution<double> generatePoint(-pointsBound, pointsBound);
+			if (trajIndex == 0)
+			{
+				startPoint = generatePoint(pointGenerator);
+				endPoint = generatePoint(pointGenerator);
+			}else
+			{
+				startPoint = endPoint;
+				endPoint = generatePoint(pointGenerator);
+			}
 
 
-		while(t<tf && trajIndex < traj.cols())
-		{
-			traj(0, trajIndex) = getPolValue(t, startPoint, endPoint, tf);
-			t += dt;
-			trajIndex++;
+			while(t<tf && trajIndex < traj.cols())
+			{
+				traj(k, trajIndex) = getPolValue(t, startPoint, endPoint, tf);
+				t += dt;
+				trajIndex++;
+			}
+			tf += duration;
 		}
-		tf += duration;
 	}
 	this->traj = traj;
 	this->n = 5;
+};
+
+ScalarVector Polynom::getValue() const{
+	return this->polValue;
+};
+void Polynom::setValue(ScalarVector polynomValue){
+	this->polValue = polynomValue;
 };
 
 Scalar getPolValue(double const & t, int const & order,  ScalarVector const & coefs)

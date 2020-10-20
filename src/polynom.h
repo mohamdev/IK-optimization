@@ -21,7 +21,7 @@ private:
 	int dim; //dimension of the polynom
 	ScalarMatrix coefs; //Matrix containing the coeficients
 	ScalarMatrix traj; //Matrix containing the
-	ScalarVector polValues; //Vector containing the values of the polynom
+	ScalarVector polValue; //Vector containing the values of the polynom
 public:
 	int getOrder() const;
 	void setOrder(int const & order);
@@ -35,6 +35,9 @@ public:
 	ScalarMatrix getTraj() const;
 	void setTraj(ScalarMatrix const & trajectory);
 	void generateRandTraj(double const & dt, double const & duration, int const & nb_points);
+
+	ScalarVector getValue() const;
+	void setValue(ScalarVector polynomValue);
 };
 
 typedef struct _polynom{

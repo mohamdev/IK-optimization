@@ -4,17 +4,17 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 CPP_SRCS += \
-../src/ik-optimization.cpp \
+../src/generate-randPol-trajectories.cpp \
 ../src/polynom.cpp \
 ../src/utils.cpp 
 
 OBJS += \
-./src/ik-optimization.o \
+./src/generate-randPol-trajectories.o \
 ./src/polynom.o \
 ./src/utils.o 
 
 CPP_DEPS += \
-./src/ik-optimization.d \
+./src/generate-randPol-trajectories.d \
 ./src/polynom.d \
 ./src/utils.d 
 
