@@ -13,11 +13,17 @@
 
 #include <Eigen/Dense>
 #include <vector>
+#include <stdlib.h>
+#include <random>
+#include <cmath>
+#include <iostream>
+
+using namespace std;
 
 typedef double Scalar;
 typedef Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> ScalarMatrix;
 typedef Eigen::Matrix<Scalar,Eigen::Dynamic,1> ScalarVector;
-using namespace std;
+
 
 void rot2quat(ScalarMatrix const & R, ScalarVector & Q);
 

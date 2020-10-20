@@ -10,6 +10,17 @@
  */
 #include "polynom.h"
 
+
+Polynom::Polynom() : n(0), dim(1){};
+Polynom::Polynom(int const & order, int const & dimension){
+	this->setOrder(order);
+	this->setDim(dimension);
+};
+
+Polynom::~Polynom(){
+	std::cout << "Polynom destructed ! " << std::endl;
+};
+
 int Polynom::getOrder() const{
 	return this->n;
 };

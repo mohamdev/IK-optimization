@@ -11,8 +11,6 @@
 #define POLYNOM_H_
 
 #include "utils.h"
-#include <random>
-#include <cmath>
 
 
 class Polynom{
@@ -23,6 +21,10 @@ private:
 	ScalarMatrix traj; //Matrix containing the
 	ScalarVector polValue; //Vector containing the values of the polynom
 public:
+	Polynom();
+	Polynom(int const & order, int const & dimension);
+	~Polynom();
+
 	int getOrder() const;
 	void setOrder(int const & order);
 

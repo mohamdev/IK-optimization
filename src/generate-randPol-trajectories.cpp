@@ -23,8 +23,8 @@ int main() {
 //	pol1 = generateRandomPol(dT, 10, 50);
 
 
-	Polynom pol1;
-	pol1.setDim(2);
+	Polynom pol1(5,2);
+	//pol1.setDim(2);
 	pol1.generateRandTraj(dT, 10, 50);
 	ScalarMatrix traj;
 	traj = pol1.getTraj();
