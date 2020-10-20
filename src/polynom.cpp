@@ -10,6 +10,80 @@
  */
 #include "polynom.h"
 
+int Polynom::getOrder() const{
+	return this->n;
+};
+void Polynom::setOrder(int const & order){
+	this->n = order;
+};
+
+int Polynom::getDim() const {
+	return this->dim;
+};
+void Polynom::setDim(int const & dimension) {
+	this->dim = dimension;
+};
+
+ScalarMatrix Polynom::getCoefs() const{
+	return this->coefs;
+};
+void Polynom::setCoefs(ScalarMatrix const & coefficients){
+	this->coefs = coefficients;
+};
+
+ScalarMatrix Polynom::getTraj() const{
+	return this->traj;
+};
+void Polynom::setTraj(ScalarMatrix const & trajectory){
+	this->traj = trajectory;
+};
+
+void Polynom::generateRandTraj(double const & dt, double const & duration, int const & nb_points){
+	/*
+	 * This function generates a random quintic polynomial trajectory between N(=nb_points) points
+	 * INPUTS:
+	 * 	dt = sampling time
+	 * 	duration = time duration between two successive points
+	 * 	nb_points = total number of points crossed by the trajectory
+	 * OUTPUT:
+	 *
+	 * */
+	ScalarMatrix traj = ScalarMatrix::Zero(1, floor(nb_points*duration/dt));
+	double pointsBound = 7.0;
+
+	double t = 0.0;
+	double tf = duration;
+	int trajIndex = 0;
+	std::random_device rd;
+	std::mt19937 pointGenerator(rd());
+	double endPoint = 0.0;
+	double startPoint = 0.0;
+	for (int indexPoint = 0; indexPoint < nb_points; indexPoint++)
+	{
+		t = 0.0;
+		std::uniform_real_distribution<double> generatePoint(-pointsBound, pointsBound);
+		if (trajIndex == 0)
+		{
+			startPoint = generatePoint(pointGenerator);
+			endPoint = generatePoint(pointGenerator);
+		}else
+		{
+			startPoint = endPoint;
+			endPoint = generatePoint(pointGenerator);
+		}
+
+
+		while(t<tf && trajIndex < traj.cols())
+		{
+			traj(0, trajIndex) = getPolValue(t, startPoint, endPoint, tf);
+			t += dt;
+			trajIndex++;
+		}
+		tf += duration;
+	}
+	this->traj = traj;
+	this->n = 5;
+};
 
 Scalar getPolValue(double const & t, int const & order,  ScalarVector const & coefs)
 {
@@ -98,7 +172,6 @@ polynom generateRandomPol(int const & order, Scalar const & dt, Scalar const & d
 	}
 	return generatedPol;
 }
-
 
 
 polynom generateRandomPol(double const & dt, double const & duration, int const & nb_points)
