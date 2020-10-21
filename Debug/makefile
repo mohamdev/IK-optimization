@@ -44,7 +44,7 @@ all: ik-optimization
 ik-optimization: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: GCC C++ Linker'
-	g++ -L/usr/lib/python2.7/config-x86_64-linux-gnu -L/usr/lib -o "ik-optimization" $(OBJS) $(USER_OBJS) $(LIBS)
+	g++ -L/usr/lib/python2.7/config-x86_64-linux-gnu -L/usr/lib/x86_64-linux-gnu/atlas -L/usr/local/lib/libsipopt.so -L/usr/local/lib -L/usr/lib -o "ik-optimization" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 

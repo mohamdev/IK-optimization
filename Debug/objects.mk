@@ -4,5 +4,5 @@
 
 USER_OBJS :=
 
-LIBS := -lpython2.7
+LIBS := -lpython2.7 -lipopt -lcoinmumps -ldl -llapack -lblas -lm
 
