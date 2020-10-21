@@ -27,7 +27,7 @@
 #include "pinocchio/parsers/urdf.hpp"
 #include "pinocchio/algorithm/joint-configuration.hpp"
 #include "pinocchio/algorithm/kinematics.hpp"
-#include <urdf_parser/urdf_parser.h>
+//#include <urdf_parser/urdf_parser.h>
 #include <pinocchio/algorithm/frames.hpp>
 #include "pinocchio/codegen/cppadcg.hpp"
 #include <Eigen/Geometry>
@@ -37,6 +37,7 @@
 
 
 using namespace std;
+using namespace pinocchio;
 
 typedef double Scalar;
 typedef Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> ScalarMatrix;
