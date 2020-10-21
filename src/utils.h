@@ -17,6 +17,24 @@
 #include <random>
 #include <cmath>
 #include <iostream>
+#include <cstdlib>
+#include <string>
+#include <limits>
+#include <fstream>
+#include <time.h>
+#include <ctime>
+#include <math.h>
+#include "pinocchio/parsers/urdf.hpp"
+#include "pinocchio/algorithm/joint-configuration.hpp"
+#include "pinocchio/algorithm/kinematics.hpp"
+#include <urdf_parser/urdf_parser.h>
+#include <pinocchio/algorithm/frames.hpp>
+#include "pinocchio/codegen/cppadcg.hpp"
+#include <Eigen/Geometry>
+#ifndef PINOCCHIO_MODEL_DIR
+#define PINOCCHIO_MODEL_DIR "path_to_the_model_dir"
+#endif
+
 
 using namespace std;
 
