@@ -64,28 +64,11 @@ public:
 	void setDataType(dataType typeData);
 };
 
-/* ------------ CLASS Vimu DECLARATION -------------*/
-class Vimu {
-private:
-	ScalarVector meas;
-	int ID; //ID used to identify the sensor in pinocchio
-	Eigen::Vector3d g; //Gravity constant
-	Eigen::Matrix3d R; //rotation matrix
-public:
-	Vimu();
-	Vimu(int const & nb_meas_variables, Model const & model, std::string ID);
-	~Vimu();
-
-	void setMeas(Model * pinModel, Data * pinData, JointStates const & dataLimb);
-	ScalarVector getMeas() const;
-
-
-
-};
 /* ------------ CLASS Limb DECLARATION ------------- */
 class Limb {
 private:
-	vector<Vimu> sensors;
+	vector<Sensor> estSensors;
+	vector<Sensor> refSensors;
 	Model pinModel;
 	Data pinData;
 	JointStates estState;
@@ -99,9 +82,9 @@ public:
 	~Limb();
 
 	void initializeLimbData(int const & nb_states, int const & nb_measurements);
-	//void refreshMeasurement();
+	void refreshMeasurement();
 
-//	void addVimu(int const & nb_sensor_variables, )
+	void addSensor(int const & nb_sensor_variables, string ID);
 };
 
 

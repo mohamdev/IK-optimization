@@ -33,6 +33,15 @@ void Sensor::setMeas(ScalarVector const & newValue){
 	}else cout << "Can't change measurement, wrong ScalarVector input size in setMeas() input" << endl;
 
 }
+void Sensor::setMeas(Model * pinModel, Data * pinData, JointStates const & dataLimb){
+    pinocchio::forwardKinematics(*pinModel, *pinData, dataLimb.q, dataLimb.dq, dataLimb.ddq);
+    updateFramePlacements(*pinModel, *pinData);
+    this->meas.head(3) = pinData->oMf[this->ID].translation(); //Position
+    this->meas.segment(3,3) = getFrameVelocity(*pinModel, *pinData, this->ID).angular(); //Velocity
+    this->R = pinData->oMf[this->ID].rotation(); //Rotation
+    this->meas.segment(6,3) = getFrameAcceleration(*pinModel, *pinData, this->ID).angular() + this->R.transpose()*this->g; //Acceleration
+    this->meas.tail(4) = rot2quat(R); //Quaternion
+}
 
 int Sensor::getID() const{
 	return this->ID;
@@ -43,33 +52,6 @@ dataType Sensor::getDataType() const{
 }
 void Sensor::setDataType(dataType typeData){
 	this->typeDat = typeData;
-}
-
-
-/* -------------- CLASS Vimu IMPLEMENTATION ------------*/
-Vimu::Vimu(){
-	this->ID = 0;
-}
-Vimu::Vimu(int const & nb_meas_variables, Model const & model, std::string ID){
-	this->meas = ScalarVector::Zero(nb_meas_variables,1);
-	this->ID = model.getFrameId(ID);
-	Eigen::Vector3d gravity(0,0,9.806);
-	this->g = gravity;
-}
-Vimu::~Vimu(){}
-
-void Vimu::setMeas(Model * pinModel, Data * pinData, JointStates const & dataLimb){
-    pinocchio::forwardKinematics(*pinModel, *pinData, dataLimb.q, dataLimb.dq, dataLimb.ddq);
-    updateFramePlacements(*pinModel, *pinData);
-    this->meas.head(3) = pinData->oMf[this->ID].translation(); //Position
-    this->meas.segment(3,3) = getFrameVelocity(*pinModel, *pinData, this->ID).angular(); //Velocity
-    this->R = pinData->oMf[this->ID].rotation(); //Rotation
-    this->meas.segment(6,3) = getFrameAcceleration(*pinModel, *pinData, this->ID).angular() + this->R.transpose()*this->g; //Acceleration
-    this->meas.tail(4) = rot2quat(R); //Quaternion
-}
-
-ScalarVector Vimu::getMeas() const{
-	return this->meas;
 }
 
 
@@ -96,7 +78,12 @@ void Limb::initializeLimbData(int const & nb_state_variables, int const & nb_mea
 	this->refMeas = ScalarMatrix::Zero(nb_meas_variables,1);
 }
 
-
+void Limb::addSensor(int const & nb_sensor_variables, string ID){
+	Sensor newEstSensor(this->pinModel, EST, nb_sensor_variables, ID);
+	Sensor newRefSensor(this->pinModel, REF, nb_sensor_variables, ID);
+	this->estSensors.push_back(newEstSensor);
+	this->refSensors.push_back(newRefSensor);
+}
 
 //void Limb::refreshMeasurement
 
