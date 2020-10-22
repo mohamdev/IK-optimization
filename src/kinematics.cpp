@@ -18,11 +18,16 @@ Sensor::Sensor(Model const & model, dataType const & typeData, int const & nb_me
 	this->ID = model.getFrameId(ID);
 	Eigen::Vector3d gravity(0,0,9.806);
 	this->g = gravity;
+	this->nb_meas_var = nb_meas_variables;
 };
 
 Sensor::~Sensor(){
 
 };
+
+int Sensor::getSize() const{
+	return this->nb_meas_var;
+}
 
 ScalarVector Sensor::getMeas() const{
 	return this->meas;
@@ -33,13 +38,13 @@ void Sensor::setMeas(ScalarVector const & newValue){
 	}else cout << "Can't change measurement, wrong ScalarVector input size in setMeas() input" << endl;
 
 }
-void Sensor::setMeas(Model * pinModel, Data * pinData, JointStates const & dataLimb){
-    pinocchio::forwardKinematics(*pinModel, *pinData, dataLimb.q, dataLimb.dq, dataLimb.ddq);
-    updateFramePlacements(*pinModel, *pinData);
-    this->meas.head(3) = pinData->oMf[this->ID].translation(); //Position
-    this->meas.segment(3,3) = getFrameVelocity(*pinModel, *pinData, this->ID).angular(); //Velocity
-    this->R = pinData->oMf[this->ID].rotation(); //Rotation
-    this->meas.segment(6,3) = getFrameAcceleration(*pinModel, *pinData, this->ID).angular() + this->R.transpose()*this->g; //Acceleration
+void Sensor::setMeas(Model const & pinModel, Data & pinData, JointStates const & dataLimb){
+    pinocchio::forwardKinematics(pinModel, pinData, dataLimb.q, dataLimb.dq, dataLimb.ddq);
+    updateFramePlacements(pinModel,pinData);
+    this->meas.head(3) = pinData.oMf[this->ID].translation(); //Position
+    this->meas.segment(3,3) = getFrameVelocity(pinModel, pinData, this->ID).angular(); //Velocity
+    this->R = pinData.oMf[this->ID].rotation(); //Rotation
+    this->meas.segment(6,3) = getFrameAcceleration(pinModel, pinData, this->ID).angular() + this->R.transpose()*this->g; //Acceleration
     this->meas.tail(4) = rot2quat(R); //Quaternion
 }
 
@@ -85,6 +90,40 @@ void Limb::addSensor(int const & nb_sensor_variables, string ID){
 	this->refSensors.push_back(newRefSensor);
 }
 
-//void Limb::refreshMeasurement
+void Limb::refreshSensors(dataType const & typeData){
+	if(typeData == EST){
+		for (unsigned int i =0; i<this->estSensors.size(); i++)
+		{
+			this->estSensors[i].setMeas(this->pinModel, this->pinData, this->estState);
+		}
+		this->refreshMeasVector(typeData);
+	}else if (typeData == REF){
+		for (unsigned int i =0; i<this->refSensors.size(); i++)
+		{
+			this->refSensors[i].setMeas(this->pinModel, this->pinData, this->refState);
+		}
+		this->refreshMeasVector(typeData);
+	}
+}
+
+void Limb::refreshMeasVector(dataType const & typeData){
+	if (typeData == EST)
+	{
+		ScalarVector newMeas = ScalarMatrix::Zero(this->estMeas.rows(), 1);
+		for (unsigned int i = 0; i<this->estSensors.size(); i++)
+		{
+			this->estMeas.segment(i*this->estSensors[i].getSize(), this->estSensors[i].getSize()) = this->estSensors[i].getMeas();
+		}
+	}else if (typeData == REF)
+	{
+		ScalarVector newMeas = ScalarMatrix::Zero(this->refMeas.rows(), 1);
+		for (unsigned int i = 0; i<this->refSensors.size(); i++)
+		{
+			this->refMeas.segment(i*this->refSensors[i].getSize(), this->refSensors[i].getSize()) = this->refSensors[i].getMeas();
+		}
+	}
+
+}
+
 
 

@@ -44,6 +44,7 @@ typedef struct _Trajectories{
 class Sensor {
 private:
 	ScalarVector meas; //contains the current value of the measurement
+	int nb_meas_var;
 	int ID; //contains the id of the sensor, allowing to find it in pinocchio::Model
 	dataType typeDat;
 	Eigen::Vector3d g; //Gravity constant
@@ -55,13 +56,15 @@ public:
 
 	ScalarVector getMeas() const;
 	void setMeas(ScalarVector const & newValue);
-	void setMeas(Model * pinModel, Data * pinData, JointStates const & dataLimb);
+	void setMeas(Model const & pinModel, Data & pinData, JointStates const & dataLimb);
 
 	int getID() const;
 	void setID(std::string newID);
 
 	dataType getDataType() const;
 	void setDataType(dataType typeData);
+
+	int getSize() const;
 };
 
 /* ------------ CLASS Limb DECLARATION ------------- */
@@ -82,7 +85,11 @@ public:
 	~Limb();
 
 	void initializeLimbData(int const & nb_states, int const & nb_measurements);
-	void refreshMeasurement();
+
+	void refreshSensors(dataType const & typeData);
+	ScalarVector getMeas(dataType const & typeData) const;
+	void refreshMeasVector(dataType const & typeData);
+	//ADD refresh states
 
 	void addSensor(int const & nb_sensor_variables, string ID);
 };
