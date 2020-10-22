@@ -43,23 +43,22 @@ typedef struct _Trajectories{
 /* ------------ CLASS Sensor DECLARATION ------------- */
 class Sensor {
 private:
-	ScalarVector value; //contains the current value of the measurement
-	std::string ID; //contains the id of the sensor, allowing to find it in pinocchio::Model
-	sensorType typeSens;
+	ScalarVector meas; //contains the current value of the measurement
+	int ID; //contains the id of the sensor, allowing to find it in pinocchio::Model
 	dataType typeDat;
+	Eigen::Vector3d g; //Gravity constant
+	Eigen::Matrix3d R; //rotation matrix
 public:
 	Sensor();
-	Sensor(sensorType const & typeSensor, dataType const & typeData);
+	Sensor(Model const & model, dataType const & typeData, int const & nb_meas_variables, std::string ID);
 	~Sensor();
 
-	ScalarVector getValue() const;
-	void setValue(ScalarVector const & newValue);
+	ScalarVector getMeas() const;
+	void setMeas(ScalarVector const & newValue);
+	void setMeas(Model * pinModel, Data * pinData, JointStates const & dataLimb);
 
-	std::string getID() const;
+	int getID() const;
 	void setID(std::string newID);
-
-	sensorType getSensType() const;
-	void setSensType(sensorType typeSensor);
 
 	dataType getDataType() const;
 	void setDataType(dataType typeData);
@@ -100,7 +99,9 @@ public:
 	~Limb();
 
 	void initializeLimbData(int const & nb_states, int const & nb_measurements);
-	void refreshMeasurement();
+	//void refreshMeasurement();
+
+//	void addVimu(int const & nb_sensor_variables, )
 };
 
 

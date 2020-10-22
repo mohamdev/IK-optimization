@@ -12,37 +12,30 @@
 #include <iostream>
 
 /* -------------- CLASS Sensor IMPLEMENTATION -------------*/
-Sensor::Sensor(sensorType const & typeSensor, dataType const & typeData){
-	this->setSensType(typeSensor);
+Sensor::Sensor(Model const & model, dataType const & typeData, int const & nb_meas_variables, std::string ID){
 	this->setDataType(typeData);
-	if (typeSensor == GYR || typeSensor == ACC || typeSensor == POS){
-		this->value == ScalarMatrix::Zero(3,1);
-	}else this->value == ScalarMatrix::Zero(4,1);         //Initialize value at the right dimensions
+	this->meas = ScalarVector::Zero(nb_meas_variables,1);
+	this->ID = model.getFrameId(ID);
+	Eigen::Vector3d gravity(0,0,9.806);
+	this->g = gravity;
 };
 
 Sensor::~Sensor(){
 
 };
 
-ScalarVector Sensor::getValue() const{
-	return this->value;
+ScalarVector Sensor::getMeas() const{
+	return this->meas;
 }
-void Sensor::setValue(ScalarVector const & newValue){
-	this->value = newValue;
+void Sensor::setMeas(ScalarVector const & newValue){
+	if(newValue.rows() == this->meas.rows()){
+		this->meas = newValue;
+	}else cout << "Can't change measurement, wrong ScalarVector input size in setMeas() input" << endl;
+
 }
 
-std::string Sensor::getID() const{
+int Sensor::getID() const{
 	return this->ID;
-}
-void Sensor::setID(std::string newID){
-	this->ID = newID;
-}
-
-sensorType Sensor::getSensType() const{
-	return this->typeSens;
-}
-void Sensor::setSensType(sensorType typeSensor){
-	this->typeSens = typeSensor;
 }
 
 dataType Sensor::getDataType() const{
@@ -75,6 +68,9 @@ void Vimu::setMeas(Model * pinModel, Data * pinData, JointStates const & dataLim
     this->meas.tail(4) = rot2quat(R); //Quaternion
 }
 
+ScalarVector Vimu::getMeas() const{
+	return this->meas;
+}
 
 
 /* -------------- CLASS Limb IMPLEMENTATION -------------*/
@@ -99,6 +95,8 @@ void Limb::initializeLimbData(int const & nb_state_variables, int const & nb_mea
 	this->refState.ddq = ScalarMatrix::Zero(nb_state_variables,1);
 	this->refMeas = ScalarMatrix::Zero(nb_meas_variables,1);
 }
+
+
 
 //void Limb::refreshMeasurement
 
