@@ -21,25 +21,24 @@ enum dataType{
 /*
  * struct LimbData contains the data of the limb at the current time sample stored in ScalarVectors
  * */
-typedef struct _LimbData{
+typedef struct _JointStates{
 	dataType typeDat;
 	ScalarVector q;
 	ScalarVector dq;
 	ScalarVector ddq;
-	ScalarVector meas;
-}LimbData;
+}JointStates;
 
 /* ------------- STRUCT LimbTraj ----------------- */
 /*
  * struct LimbTraj contains the whole trajectory data in a vector<ScalarVector>.
  * */
-typedef struct _LimbTraj{
+typedef struct _Trajectories{
 	dataType typeDat;
 	vector<ScalarVector> qTraj;
 	vector<ScalarVector> dqTraj;
 	vector<ScalarVector> ddqTraj;
 	vector<ScalarVector> measTraj;
-}LimbTraj;
+}Trajectories;
 
 /* ------------ CLASS Sensor DECLARATION ------------- */
 class Sensor {
@@ -66,19 +65,42 @@ public:
 	void setDataType(dataType typeData);
 };
 
+/* ------------ CLASS Vimu DECLARATION -------------*/
+class Vimu {
+private:
+	ScalarVector meas;
+	int ID; //ID used to identify the sensor in pinocchio
+	Eigen::Vector3d g; //Gravity constant
+	Eigen::Matrix3d R; //rotation matrix
+public:
+	Vimu();
+	Vimu(int const & nb_meas_variables, Model const & model, std::string ID);
+	~Vimu();
+
+	void setMeas(Model * pinModel, Data * pinData, JointStates const & dataLimb);
+	ScalarVector getMeas() const;
+
+
+
+};
 /* ------------ CLASS Limb DECLARATION ------------- */
 class Limb {
 private:
-	vector<Sensor> sensors;
+	vector<Vimu> sensors;
 	Model pinModel;
 	Data pinData;
-	LimbData esData;
-	LimbData refData;
-	LimbTraj esTraj;
-	LimbTraj refTraj;
+	JointStates estState;
+	JointStates refState;
+	Trajectories estTraj;
+	Trajectories refTraj;
+	ScalarVector refMeas;
+	ScalarVector estMeas;
 public:
 	Limb(string const & urdf_filename, int const & nb_states, int const & nb_measurements);
 	~Limb();
+
+	void initializeLimbData(int const & nb_states, int const & nb_measurements);
+	void refreshMeasurement();
 };
 
 

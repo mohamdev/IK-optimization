@@ -9,6 +9,7 @@ CPP_SRCS += \
 ../src/hs071_nlp.cpp \
 ../src/kinematics.cpp \
 ../src/polynom.cpp \
+../src/test-pinocchio-fkine.cpp \
 ../src/utils.cpp 
 
 OBJS += \
@@ -17,6 +18,7 @@ OBJS += \
 ./src/hs071_nlp.o \
 ./src/kinematics.o \
 ./src/polynom.o \
+./src/test-pinocchio-fkine.o \
 ./src/utils.o 
 
 CPP_DEPS += \
@@ -25,6 +27,7 @@ CPP_DEPS += \
 ./src/hs071_nlp.d \
 ./src/kinematics.d \
 ./src/polynom.d \
+./src/test-pinocchio-fkine.d \
 ./src/utils.d 
 
 

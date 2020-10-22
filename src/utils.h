@@ -44,7 +44,7 @@ typedef Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> ScalarMatrix;
 typedef Eigen::Matrix<Scalar,Eigen::Dynamic,1> ScalarVector;
 
 
-void rot2quat(ScalarMatrix const & R, ScalarVector & Q);
+Eigen::Vector4d rot2quat(Eigen::Matrix3d const & R);
 
 void eigen2vector(ScalarMatrix const& eigenMat, std::vector<std::vector<double>> & returnedVect);
 
