@@ -59,7 +59,7 @@ void Polynom::generateRandTraj(double const & dt, double const & duration, int c
 	 *
 	 * */
 	ScalarMatrix traj = ScalarMatrix::Zero(this->dim, floor(nb_points*duration/dt));
-	double pointsBound = 7.0;
+	double pointsBound = 2.0;
 
 
 	std::random_device rd;

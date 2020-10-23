@@ -23,6 +23,20 @@ void eigen2vector(ScalarMatrix const& eigenMat, std::vector<std::vector<double>>
         }
     }
 }
+void eigen2vector(vector<ScalarVector> const& eigenMat, std::vector<std::vector<Scalar>> & returnedVect)
+{
+
+    for(unsigned int i=0; i<eigenMat[0].rows(); i++){
+        vector<Scalar> newVec;
+        for (unsigned int j=0; j<eigenMat.size(); j++)
+        {
+        	newVec.push_back(eigenMat[j](i));
+        }
+        returnedVect.push_back(newVec);
+    }
+
+
+}
 
 Eigen::Vector4d rot2quat(Eigen::Matrix3d const & R)
 {

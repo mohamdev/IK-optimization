@@ -11,7 +11,7 @@
 
 /* ----------- ENUMS sensorType and dataType ------------- */
 enum sensorType{
-	POS, GYR, ACC, QUAT
+	POS, GYR, ACC, QUAT, q, dq, ddq
 };
 enum dataType{
 	EST, REF, MEAS
@@ -51,15 +51,20 @@ private:
 	Eigen::Matrix3d R; //rotation matrix
 public:
 	Sensor();
-	Sensor(Model const & model, dataType const & typeData, int const & nb_meas_variables, std::string ID);
+	Sensor(Model const & model, int const & nb_meas_variables, dataType const & typeData, std::string ID);
 	~Sensor();
 
 	ScalarVector getMeas() const;
 	void setMeas(ScalarVector const & newValue);
 	void setMeas(Model const & pinModel, Data & pinData, JointStates const & dataLimb);
+	void setMeas(Model const & pinModel, Data & pinData, ScalarVector const & q);
+	void setMeas(Model const & pinModel, Data & pinData, ScalarVector const & q, ScalarVector const & dq);
 
 	int getID() const;
 	void setID(std::string newID);
+
+	int getNbMeasVar();
+
 
 	dataType getDataType() const;
 	void setDataType(dataType typeData);
@@ -72,21 +77,24 @@ class Limb {
 private:
 	vector<Sensor> estSensors;
 	vector<Sensor> refSensors;
-	Model pinModel;
-	Data pinData;
 	JointStates estState;
 	JointStates refState;
-	Trajectories estTraj;
-	Trajectories refTraj;
 	ScalarVector refMeas;
 	ScalarVector estMeas;
 public:
+	Model pinModel;
+	Data pinData;
+	vector<Scalar> t;
+	vector<int> timesample;
+	Trajectories estTraj;
+	Trajectories refTraj;
+
 	Limb(string const & urdf_filename, int const & nb_states, int const & nb_measurements);
 	~Limb();
 
-	void initializeLimbData(int const & nb_states, int const & nb_measurements);
+	void setDataDimensions(int const & nb_states, int const & nb_measurements);
 
-	void refreshSensors(dataType const & typeData);
+	void refreshAllSensors(dataType const & typeData);
 	ScalarVector getMeas(dataType const & typeData) const;
 	void refreshMeasVector(dataType const & typeData);
 
@@ -99,7 +107,9 @@ public:
 	void setJointAcc(dataType const & typeData);
 	ScalarVector getJointAcc(dataType const & typeData) const;
 
-	void addSensor(int const & nb_sensor_variables, string ID);
+	void setJointPosVelAcc(dataType const & typeData, ScalarVector const & q, ScalarVector const & dq, ScalarVector const & ddq);
+
+	void addSensor(int const & nb_sensor_var, string ID);
 };
 
 
