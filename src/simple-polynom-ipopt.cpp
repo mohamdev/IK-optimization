@@ -10,9 +10,17 @@
 
 #include "simple-polynom-ipopt.hpp"
 #include "IpTNLP.hpp"
+#include <stdlib.h>
+#include <iostream>
 
 using namespace Ipopt;
 
+simplePol_NLP::simplePol_NLP(){
+
+}
+simplePol_NLP::~simplePol_NLP(){
+
+}
 // returns the size of the problem
 bool simplePol_NLP::get_nlp_info(
    Index&          n,
@@ -27,7 +35,7 @@ bool simplePol_NLP::get_nlp_info(
    // one equality constraint and one inequality constraint
    m = 2;
    // in this example the jacobian is dense and contains 8 nonzeros
-   nnz_jac_g = 4;
+   nnz_jac_g = 2;
    // the Hessian is also dense and has 16 total nonzeros, but we
    // only need the lower left corner (since it is symmetric)
    nnz_h_lag = 0;
@@ -113,8 +121,7 @@ bool simplePol_NLP::eval_grad_f(
 )
 {
    n = 1 ;
-   grad_f[0] = 0.29*cos(x[0]);
-   grad_f[1] = 0.29*sin(x[0]);
+   grad_f[0] = 2*0.29*cos(x[0])*sin(x[0]) + 2*0.29*sin(x[0])*cos(x[0]);
    return true;
 }
 
@@ -132,5 +139,70 @@ bool simplePol_NLP::eval_g(
    g[0] = sin(x[0]);
    g[1] = cos(x[0]);
    return true;
+}
+bool simplePol_NLP::eval_jac_g(
+   Index         n,
+   const Number* x,
+   bool          new_x,
+   Index         m,
+   Index         nele_jac,
+   Index*        iRow,
+   Index*        jCol,
+   Number*       values
+)
+{
+	n = 1;
+	m = 2;
+	nele_jac = 2;
+	if (values == NULL){
+	    iRow[0] = 0;
+	    jCol[0] = 0;
+	    iRow[1] = 0;
+	    jCol[1] = 1;
+	}else{
+		values[0] = cos(x[0]);
+		values[1] = -sin(x[0]);
+	}
+
+	return true;
+}
+void simplePol_NLP::finalize_solution(
+   SolverReturn               status,
+   Index                      n,
+   const Number*              x,
+   const Number*              z_L,
+   const Number*              z_U,
+   Index                      m,
+   const Number*              g,
+   const Number*              lambda,
+   Number                     obj_value,
+   const IpoptData*           ip_data,
+   IpoptCalculatedQuantities* ip_cq
+)
+{
+	n = 1;
+	m = 2;
+	   // For this example, we write the solution to the console
+	   std::cout << std::endl << std::endl << "Solution of the primal variables, x" << std::endl;
+	   for( Index i = 0; i < n; i++ )
+	   {
+	      std::cout << "x[" << i << "] = " << x[i] << std::endl;
+	   }
+	   std::cout << std::endl << std::endl << "Solution of the bound multipliers, z_L and z_U" << std::endl;
+	   for( Index i = 0; i < n; i++ )
+	   {
+	      std::cout << "z_L[" << i << "] = " << z_L[i] << std::endl;
+	   }
+	   for( Index i = 0; i < n; i++ )
+	   {
+	      std::cout << "z_U[" << i << "] = " << z_U[i] << std::endl;
+	   }
+	   std::cout << std::endl << std::endl << "Objective value" << std::endl;
+	   std::cout << "f(x*) = " << obj_value << std::endl;
+	   std::cout << std::endl << "Final value of the constraints:" << std::endl;
+	   for( Index i = 0; i < m; i++ )
+	   {
+	      std::cout << "g(" << i << ") = " << g[i] << std::endl;
+	   }
 }
 

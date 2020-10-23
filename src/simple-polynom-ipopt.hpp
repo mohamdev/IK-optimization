@@ -18,13 +18,15 @@ using namespace Ipopt;
 class simplePol_NLP: public TNLP
 {
 public:
+	simplePol_NLP();
+	virtual ~simplePol_NLP();
 	   virtual bool get_nlp_info(
 	      Index&          n,
 	      Index&          m,
 	      Index&          nnz_jac_g,
 	      Index&          nnz_h_lag,
 	      IndexStyleEnum& index_style
-	   ) = 0;
+	   );
 
 	   virtual bool get_bounds_info(
 	      Index   n,
@@ -33,7 +35,7 @@ public:
 	      Index   m,
 	      Number* g_l,
 	      Number* g_u
-	   ) = 0;
+	   );
 	   virtual bool get_starting_point(
 	      Index   n,
 	      bool    init_x,
@@ -44,27 +46,70 @@ public:
 	      Index   m,
 	      bool    init_lambda,
 	      Number* lambda
-	   ) = 0;
+	   );
 	   virtual bool eval_f(
 	      Index         n,
 	      const Number* x,
 	      bool          new_x,
 	      Number&       obj_value
-	   ) = 0;
+	   );
 	   virtual bool eval_grad_f(
 	      Index         n,
 	      const Number* x,
 	      bool          new_x,
 	      Number*       grad_f
-	   ) = 0;
+	   );
 	   virtual bool eval_g(
 	      Index         n,
 	      const Number* x,
 	      bool          new_x,
 	      Index         m,
 	      Number*       g
-	   ) = 0;
+	   );
+	   virtual bool eval_jac_g(
+	      Index         n,
+	      const Number* x,
+	      bool          new_x,
+	      Index         m,
+	      Index         nele_jac,
+	      Index*        iRow,
+	      Index*        jCol,
+	      Number*       values
+	   );
+	   virtual void finalize_solution(
+	      SolverReturn               status,
+	      Index                      n,
+	      const Number*              x,
+	      const Number*              z_L,
+	      const Number*              z_U,
+	      Index                      m,
+	      const Number*              g,
+	      const Number*              lambda,
+	      Number                     obj_value,
+	      const IpoptData*           ip_data,
+	      IpoptCalculatedQuantities* ip_cq
+	   );
+private:
+   /**@name Methods to block default compiler methods.
+    *
+    * The compiler automatically generates the following three methods.
+    *  Since the default compiler implementation is generally not what
+    *  you want (for all but the most simple classes), we usually
+    *  put the declarations of these methods in the private section
+    *  and never implement them. This prevents the compiler from
+    *  implementing an incorrect "default" behavior without us
+    *  knowing. (See Scott Meyers book, "Effective C++")
+    */
+   //@{
+   simplePol_NLP(
+      const simplePol_NLP&
+   );
+
+   simplePol_NLP& operator=(
+      const simplePol_NLP&
+   );
 };
+
 
 
 
