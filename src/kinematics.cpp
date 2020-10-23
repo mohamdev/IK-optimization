@@ -125,5 +125,18 @@ void Limb::refreshMeasVector(dataType const & typeData){
 
 }
 
+void Limb::setJointPos(ScalarVector const & newJointPos, dataType const & typeData){
+	if (typeData == REF){
+		this->refState.q = newJointPos;
+	}else if (typeData == EST) this->estState.q = newJointPos;
+}
+ScalarVector Limb::getJointPos(dataType const & typeData) const{
+	if (typeData == REF){
+		return this->refState.q;
+	}else if (typeData == EST) {
+		return this->estState.q;
+	}else return this->estState.q;
+}
+
 
 

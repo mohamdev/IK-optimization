@@ -89,7 +89,15 @@ public:
 	void refreshSensors(dataType const & typeData);
 	ScalarVector getMeas(dataType const & typeData) const;
 	void refreshMeasVector(dataType const & typeData);
-	//ADD refresh states
+
+	void setJointPos(ScalarVector const & newJointPos, dataType const & typeData);
+	ScalarVector getJointPos(dataType const & typeData) const;
+
+	void setJointVel(dataType const & typeData);
+	ScalarVector getJointVel(dataType const & typeData) const;
+
+	void setJointAcc(dataType const & typeData);
+	ScalarVector getJointAcc(dataType const & typeData) const;
 
 	void addSensor(int const & nb_sensor_variables, string ID);
 };
