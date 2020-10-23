@@ -108,7 +108,8 @@ bool simplePol_NLP::eval_f(
 )
 {
 	n = 1;
-	obj_value = std::pow(0.29*std::sin(x[0]),2) + std::pow(-0.29*std::cos(x[0]),2);
+	obj_value = std::pow(0.29*std::sin(x[0]) - 0.29*std::sin(0.73),2) + std::pow(-0.29*std::cos(x[0]) + 0.29*std::cos(0.73),2);
+			//std::pow(0.29*std::sin(x[0]) - 0.29*std::sin(1.5),2) + std::pow(-0.29*std::cos(x[0]) - (-0.29*std::cos(1.5)),2);
 	return true;
 }
 
@@ -121,7 +122,7 @@ bool simplePol_NLP::eval_grad_f(
 )
 {
    n = 1 ;
-   grad_f[0] = 2*0.29*cos(x[0])*sin(x[0]) + 2*0.29*sin(x[0])*cos(x[0]);
+   grad_f[0] = 2*0.29*0.29*cos(x[0])*sin(x[0]) - 2*0.29*0.29*sin(0.73)*cos(x[0]) - 2*0.29*0.29*sin(x[0])*cos(x[0]) + 2*0.29*0.29*cos(0.73)*sin(x[0]);
    return true;
 }
 
@@ -157,8 +158,8 @@ bool simplePol_NLP::eval_jac_g(
 	if (values == NULL){
 	    iRow[0] = 0;
 	    jCol[0] = 0;
-	    iRow[1] = 0;
-	    jCol[1] = 1;
+	    iRow[1] = 1;
+	    jCol[1] = 0;
 	}else{
 		values[0] = cos(x[0]);
 		values[1] = -sin(x[0]);
