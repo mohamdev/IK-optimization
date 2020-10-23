@@ -19,7 +19,7 @@ int main(int argc, char ** argv)
 
 	Polynom pol1(5,1);
 	//pol1.setDim(2);
-	pol1.generateRandTraj(dT, 1, 50);
+	pol1.generateRandTraj(dT, 0.1, 500);
 	ScalarMatrix traj;
 	traj = pol1.getTraj();
   const std::string urdf_filename = "/home/aladinedev2/Desktop/pinocchio-cpp/urdf/human_arm_p.urdf";
@@ -31,9 +31,9 @@ int main(int argc, char ** argv)
   arm.addSensor(13, "elbow_joint_q10");
 
   ScalarVector q = ScalarMatrix::Zero(13,1);
-  q(6) = traj(0,0);
+  //q(5) = traj(0,0);
   for (int i =0; i<traj.cols(); i++){
-	  q(6) = traj(0,i);
+	 q(6) = traj(0,i);
 
 	  arm.setJointPos(q, REF);
 	  arm.refreshAllSensors(REF);
