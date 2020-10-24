@@ -15,11 +15,18 @@
 
 using namespace Ipopt;
 
-simplePol_NLP::simplePol_NLP(){
-
+simplePol_NLP::simplePol_NLP(Scalar const & firstPoint){
+	this->setEvalPoint(firstPoint);
 }
 simplePol_NLP::~simplePol_NLP(){
 
+}
+void simplePol_NLP::setEvalPoint(Scalar const & newEvalPoint){
+	this->evalPoint = newEvalPoint;
+}
+
+vector<Scalar> simplePol_NLP::getEvalTrajectory(){
+	return this->evalTrajectory;
 }
 // returns the size of the problem
 bool simplePol_NLP::get_nlp_info(
@@ -108,7 +115,7 @@ bool simplePol_NLP::eval_f(
 )
 {
 	n = 1;
-	obj_value = std::pow(0.29*std::sin(x[0]) - 0.29*std::sin(0.73),2) + std::pow(-0.29*std::cos(x[0]) + 0.29*std::cos(0.73),2);
+	obj_value = std::pow(0.29*std::sin(x[0]) - 0.29*std::sin(evalPoint),2) + std::pow(-0.29*std::cos(x[0]) + 0.29*std::cos(evalPoint),2);
 			//std::pow(0.29*std::sin(x[0]) - 0.29*std::sin(1.5),2) + std::pow(-0.29*std::cos(x[0]) - (-0.29*std::cos(1.5)),2);
 	return true;
 }
@@ -122,7 +129,7 @@ bool simplePol_NLP::eval_grad_f(
 )
 {
    n = 1 ;
-   grad_f[0] = 2*0.29*0.29*cos(x[0])*sin(x[0]) - 2*0.29*0.29*sin(0.73)*cos(x[0]) - 2*0.29*0.29*sin(x[0])*cos(x[0]) + 2*0.29*0.29*cos(0.73)*sin(x[0]);
+   grad_f[0] = 2*0.29*0.29*cos(x[0])*sin(x[0]) - 2*0.29*0.29*sin(evalPoint)*cos(x[0]) - 2*0.29*0.29*sin(x[0])*cos(x[0]) + 2*0.29*0.29*cos(evalPoint)*sin(x[0]);
    return true;
 }
 
@@ -183,27 +190,28 @@ void simplePol_NLP::finalize_solution(
 {
 	n = 1;
 	m = 2;
-	   // For this example, we write the solution to the console
-	   std::cout << std::endl << std::endl << "Solution of the primal variables, x" << std::endl;
-	   for( Index i = 0; i < n; i++ )
-	   {
-	      std::cout << "x[" << i << "] = " << x[i] << std::endl;
-	   }
-	   std::cout << std::endl << std::endl << "Solution of the bound multipliers, z_L and z_U" << std::endl;
-	   for( Index i = 0; i < n; i++ )
-	   {
-	      std::cout << "z_L[" << i << "] = " << z_L[i] << std::endl;
-	   }
-	   for( Index i = 0; i < n; i++ )
-	   {
-	      std::cout << "z_U[" << i << "] = " << z_U[i] << std::endl;
-	   }
-	   std::cout << std::endl << std::endl << "Objective value" << std::endl;
-	   std::cout << "f(x*) = " << obj_value << std::endl;
-	   std::cout << std::endl << "Final value of the constraints:" << std::endl;
-	   for( Index i = 0; i < m; i++ )
-	   {
-	      std::cout << "g(" << i << ") = " << g[i] << std::endl;
-	   }
+	this->evalTrajectory.push_back(x[0]);
+//	   // For this example, we write the solution to the console
+//	   std::cout << std::endl << std::endl << "Solution of the primal variables, x" << std::endl;
+//	   for( Index i = 0; i < n; i++ )
+//	   {
+//	      std::cout << "x[" << i << "] = " << x[i] << std::endl;
+//	   }
+//	   std::cout << std::endl << std::endl << "Solution of the bound multipliers, z_L and z_U" << std::endl;
+//	   for( Index i = 0; i < n; i++ )
+//	   {
+//	      std::cout << "z_L[" << i << "] = " << z_L[i] << std::endl;
+//	   }
+//	   for( Index i = 0; i < n; i++ )
+//	   {
+//	      std::cout << "z_U[" << i << "] = " << z_U[i] << std::endl;
+//	   }
+//	   std::cout << std::endl << std::endl << "Objective value" << std::endl;
+//	   std::cout << "f(x*) = " << obj_value << std::endl;
+//	   std::cout << std::endl << "Final value of the constraints:" << std::endl;
+//	   for( Index i = 0; i < m; i++ )
+//	   {
+//	      std::cout << "g(" << i << ") = " << g[i] << std::endl;
+//	   }
 }
 

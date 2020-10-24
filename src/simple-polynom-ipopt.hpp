@@ -9,17 +9,26 @@
 #define SIMPLE_POLYNOM_IPOPT_HPP_
 
 #include "IpTNLP.hpp"
+
 #include <cmath>
 #include <math.h>
 #include <stdlib.h>
+#include <Eigen/Dense>
+#include <vector>
+using namespace std;
+typedef double Scalar;
+typedef Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> ScalarMatrix;
+typedef Eigen::Matrix<Scalar,Eigen::Dynamic,1> ScalarVector;
 
 using namespace Ipopt;
 
 class simplePol_NLP: public TNLP
 {
 public:
-	simplePol_NLP();
+	simplePol_NLP(Scalar const & firstPoint);
 	virtual ~simplePol_NLP();
+   void setEvalPoint(Scalar const & newEvalPoint);
+   vector<Scalar> getEvalTrajectory();
 	   virtual bool get_nlp_info(
 	      Index&          n,
 	      Index&          m,
@@ -101,6 +110,8 @@ private:
     *  knowing. (See Scott Meyers book, "Effective C++")
     */
    //@{
+   Scalar evalPoint;
+   vector<Scalar> evalTrajectory;
    simplePol_NLP(
       const simplePol_NLP&
    );

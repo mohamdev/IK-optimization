@@ -6,9 +6,12 @@
  */
 #include "IpIpoptApplication.hpp"
 #include "simple-polynom-ipopt.hpp"
-//
+#include "polynom.h"
+#define dT 0.01
 #include <iostream>
+#include "matplotlibcpp.h"
 
+namespace plt = matplotlibcpp;
 
 using namespace Ipopt;
 
@@ -19,7 +22,11 @@ int main(
 {
    // Create a new instance of your nlp
    //  (use a SmartPtr, not raw)
-   SmartPtr<TNLP> mynlp = new simplePol_NLP();
+	   Polynom pol1(5,1);
+	   pol1.generateRandTraj(dT, 0.1, 100);
+	   ScalarMatrix traj;
+	   traj = pol1.getTraj();
+   SmartPtr<simplePol_NLP> mynlp = new simplePol_NLP(traj(0,0));
 
 
    // Create a new instance of IpoptApplication
@@ -31,12 +38,13 @@ int main(
    // Change some options
    // Note: The following choices are only examples, they might not be
    //       suitable for your optimization problem.
-   app->Options()->SetNumericValue("tol", 1e-8);
+   app->Options()->SetNumericValue("tol", 1e-7);
+   app->Options()->SetIntegerValue("print_level", 0);
    app->Options()->SetStringValue("mu_strategy", "adaptive");
-   app->Options()->SetStringValue("output_file", "ipopt.out");
+//   app->Options()->SetStringValue("output_file", "ipopt.out");
    app->Options()->SetStringValue("hessian_approximation", "limited-memory");
-   app->Options()->SetStringValue("derivative_test", "first-order");
-   app->Options()->SetStringValue("derivative_test_print_all", "yes");
+//   app->Options()->SetStringValue("derivative_test", "first-order");
+//   app->Options()->SetStringValue("derivative_test_print_all", "yes");
    // The following overwrites the default name (ipopt.opt) of the options file
    // app->Options()->SetStringValue("option_file_name", "hs071.opt");
 
@@ -49,17 +57,23 @@ int main(
       return (int) status;
    }
 
-   // Ask Ipopt to solve the problem
-   status = app->OptimizeTNLP(mynlp);
 
-   if( status == Solve_Succeeded )
+   vector<Scalar> t;
+   vector<Scalar> refTraj;
+   for(int i = 0;  i<traj.cols(); i++)
    {
-      std::cout << std::endl << std::endl << "*** The problem solved!" << std::endl;
+	   refTraj.push_back(traj(0,i));
+	   t.push_back(i);
+	   mynlp->setEvalPoint(traj(0,i));//= new simplePol_NLP(traj(0,i));
+	   status = app->OptimizeTNLP(mynlp);
    }
-   else
-   {
-      std::cout << std::endl << std::endl << "*** The problem FAILED!" << std::endl;
-   }
+   // Ask Ipopt to solve the problem
+  vector<Scalar> estTraj = mynlp->getEvalTrajectory();
+
+  plt::named_plot("refTraj",t ,refTraj);
+  plt::named_plot("estTraj",t ,estTraj, "r--");
+  plt::legend();
+  plt::show();
 
    // As the SmartPtrs go out of scope, the reference count
    // will be decremented and the objects will automatically
