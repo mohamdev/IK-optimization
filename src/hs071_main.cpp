@@ -23,7 +23,7 @@ int main(
    // Create a new instance of your nlp
    //  (use a SmartPtr, not raw)
 	   Polynom pol1(5,1);
-	   pol1.generateRandTraj(dT, 0.1, 100);
+	   pol1.generateRandTraj(dT, 0.1, 200);
 	   ScalarMatrix traj;
 	   traj = pol1.getTraj();
    SmartPtr<simplePol_NLP> mynlp = new simplePol_NLP(traj(0,0));

@@ -111,6 +111,7 @@ private:
     */
    //@{
    Scalar evalPoint;
+   Scalar estPoint;
    vector<Scalar> evalTrajectory;
    simplePol_NLP(
       const simplePol_NLP&

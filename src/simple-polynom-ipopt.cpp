@@ -17,6 +17,7 @@ using namespace Ipopt;
 
 simplePol_NLP::simplePol_NLP(Scalar const & firstPoint){
 	this->setEvalPoint(firstPoint);
+	this->estPoint = 0;
 }
 simplePol_NLP::~simplePol_NLP(){
 
@@ -103,7 +104,7 @@ bool simplePol_NLP::get_starting_point(
    init_z = false;
    init_lambda = false;
    // initialize to the given starting point
-   x[0] = 0.5;
+   x[0] = this->estPoint;
    return true;
 }
 
@@ -190,6 +191,7 @@ void simplePol_NLP::finalize_solution(
 {
 	n = 1;
 	m = 2;
+	this->estPoint = x[0];
 	this->evalTrajectory.push_back(x[0]);
 //	   // For this example, we write the solution to the console
 //	   std::cout << std::endl << std::endl << "Solution of the primal variables, x" << std::endl;
