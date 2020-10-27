@@ -38,6 +38,19 @@ void eigen2vector(std::vector<ScalarVector> const& eigenMat, std::vector<std::ve
 
 }
 
+//void getStateVectAD_vel(ADVector & X, ADVector const & q, ADVector const & dq){
+//
+//    //ADVector X(q.rows()+dq.rows());
+//    int i = 0;
+//    int j = 0;
+//    for (i=0; i<X.rows(); i += 2){
+//        X(i) = q(j);
+//        X(i+1) = dq(j);
+//        j++;
+//    }
+//    //return X;
+//}
+
 Eigen::Vector4d rot2quat(Eigen::Matrix3d const & R)
 {
 	/*
@@ -141,6 +154,15 @@ ADVector rot2quatAD(ADMatrix const & R)
 
 }
 
+template <typename eigenVect>
+void x_to_q_dq(eigenVect const & Xvel, eigenVect & q, eigenVect & dq)
+{
+	for(int j = 0; j<q.rows(); j++)
+	{
+		q(j) = Xvel(j);
+		dq(j) = Xvel(j+q.rows());
+	}
+}
 
 
 

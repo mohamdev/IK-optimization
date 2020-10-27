@@ -55,9 +55,12 @@ typedef ADModel::ConfigVectorType ADConfigVectorType;
 
 Eigen::Vector4d rot2quat(Eigen::Matrix3d const & R);
 ADVector rot2quatAD(ADMatrix const & R);
-void getStateVectAD_vel(ADVector & X, ADVector const & q, ADVector const & dq);
+//void getStateVectAD_vel(ADVector & X, ADVector const & q, ADVector const & dq);
 
 void eigen2vector(ScalarMatrix const& eigenMat, std::vector<std::vector<double>> & returnedVect);
 void eigen2vector(std::vector<ScalarVector> const& eigenMat, std::vector<std::vector<Scalar>> & returnedVect);
+
+template <typename eigenVect>
+void x_to_q_dq(eigenVect const & Xvel, eigenVect & q, eigenVect & dq);
 
 #endif /* UTILS_H_ */
