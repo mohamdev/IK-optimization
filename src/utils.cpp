@@ -23,11 +23,11 @@ void eigen2vector(ScalarMatrix const& eigenMat, std::vector<std::vector<double>>
         }
     }
 }
-void eigen2vector(vector<ScalarVector> const& eigenMat, std::vector<std::vector<Scalar>> & returnedVect)
+void eigen2vector(std::vector<ScalarVector> const& eigenMat, std::vector<std::vector<Scalar>> & returnedVect)
 {
 
     for(unsigned int i=0; i<eigenMat[0].rows(); i++){
-        vector<Scalar> newVec;
+        std::vector<Scalar> newVec;
         for (unsigned int j=0; j<eigenMat.size(); j++)
         {
         	newVec.push_back(eigenMat[j](i));
@@ -92,6 +92,54 @@ Eigen::Vector4d rot2quat(Eigen::Matrix3d const & R)
     return quat;
 }
 
+ADVector rot2quatAD(ADMatrix const & R)
+{
+	ADVector Q = ADMatrix::Zero(4,1);
+    ADScalar Tr;
+    Tr = R(0,0) + R(1,1) + R(2,2);
+    ADScalar S = sqrt(Tr+1.0)*2.0;
+    Q(0) = 0.25 * S;
+    Q(1) = (R(2,1) - R(1,2))/S;
+    Q(2) = (R(0,2) - R(2,0))/S;
+    Q(3) = (R(1,0) - R(0,1))/S;
+
+    return Q;
+//
+//        if (Tr>0)
+//    {
+//        ADScalar S;
+//        S = sqrt(Tr+1)*2.0;
+//        Q(0) = 0.25 * S;
+//        Q(1) = (R(2,1) - R(1,2))/S;
+//        Q(2) = (R(0,2) - R(2,0))/S;
+//        Q(3) = (R(1,0) - R(0,1))/S;
+//    } else if (R(0,0)>R(1,1) && R(0,0)<R(2,2))
+//    {
+//            ADScalar S;
+//            S = sqrt(1.0+R(0,0)-R(1,1)-R(2,2))*2;
+//            Q(0) = (R(2,1) - R(1,2))/S;
+//            Q(1) = 0.25*S;
+//            Q(2) = (R(0,1) + R(1,0))/S;
+//            Q(3) = (R(0,2) + R(2,0))/S;
+//
+//    }else if (R(1,1)>R(2,2))
+//    {
+//            ADScalar S;
+//            S = sqrt(1.0+R(1,1) - R(0,0) - R(2,2))*2.0;
+//            Q(0) = (R(0,2)-R(2,0))/S;
+//            Q(1) = (R(0,1) + R(1,0))/S;
+//            Q(2) = 0.25*S;
+//            Q(3) = (R(1,2) + R(2,1))/S;
+//    }else {
+//            ADScalar S;
+//            S = sqrt(1.0+R(2,2)-R(0,0)-R(1,1))*2.0;
+//            Q(0) = (R(1,0) - R(0,1))/S;
+//            Q(1) = (R(0,2)+R(2,0))/S;
+//            Q(2) = (R(1,2)-R(2,1))/S;
+//            Q(3) = 0.25*S;
+//    }
+
+}
 
 
 

@@ -27,26 +27,37 @@
 #include "pinocchio/parsers/urdf.hpp"
 #include "pinocchio/algorithm/joint-configuration.hpp"
 #include "pinocchio/algorithm/kinematics.hpp"
+#include "pinocchio/codegen/cppadcg.hpp"
 //#include <urdf_parser/urdf_parser.h>
 #include <pinocchio/algorithm/frames.hpp>
 #include "pinocchio/codegen/cppadcg.hpp"
+# include <cppad/cppad.hpp> // the CppAD package
 #include <Eigen/Geometry>
 #ifndef PINOCCHIO_MODEL_DIR
 #define PINOCCHIO_MODEL_DIR "path_to_the_model_dir"
 #endif
-
+using namespace CppAD;
 
 using namespace std;
-using namespace pinocchio;
+namespace pin = pinocchio;
 
+typedef pin::Model Model;
+typedef pin::Model::Data Data;
 typedef double Scalar;
 typedef Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> ScalarMatrix;
 typedef Eigen::Matrix<Scalar,Eigen::Dynamic,1> ScalarVector;
-
+typedef AD<Scalar> ADScalar;
+typedef pin::ModelTpl<ADScalar> ADModel;
+typedef ADModel::Data ADData;
+typedef Eigen::Matrix<ADScalar,Eigen::Dynamic,1> ADVector;
+typedef Eigen::Matrix<ADScalar,Eigen::Dynamic,Eigen::Dynamic> ADMatrix;
+typedef ADModel::ConfigVectorType ADConfigVectorType;
 
 Eigen::Vector4d rot2quat(Eigen::Matrix3d const & R);
+ADVector rot2quatAD(ADMatrix const & R);
+void getStateVectAD_vel(ADVector & X, ADVector const & q, ADVector const & dq);
 
 void eigen2vector(ScalarMatrix const& eigenMat, std::vector<std::vector<double>> & returnedVect);
-void eigen2vector(vector<ScalarVector> const& eigenMat, std::vector<std::vector<Scalar>> & returnedVect);
+void eigen2vector(std::vector<ScalarVector> const& eigenMat, std::vector<std::vector<Scalar>> & returnedVect);
 
 #endif /* UTILS_H_ */

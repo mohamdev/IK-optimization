@@ -9,9 +9,10 @@
 
 
 #include "simple-polynom-ipopt.hpp"
-#include "IpTNLP.hpp"
-#include <stdlib.h>
-#include <iostream>
+//#include "IpTNLP.hpp"
+//#include "kinematics.hpp"
+//#include <stdlib.h>
+//#include <iostream>
 
 using namespace Ipopt;
 
@@ -22,6 +23,7 @@ simplePol_NLP::simplePol_NLP(Scalar const & firstPoint){
 simplePol_NLP::~simplePol_NLP(){
 
 }
+
 void simplePol_NLP::setEvalPoint(Scalar const & newEvalPoint){
 	this->evalPoint = newEvalPoint;
 }

@@ -50,7 +50,7 @@ void Sensor::setMeas(Model const & pinModel, Data & pinData, JointStates const &
 }
 
 void Sensor::setMeas(Model const & pinModel, Data & pinData, ScalarVector const & q){
-    pinocchio::forwardKinematics(pinModel, pinData, q);
+    pin::forwardKinematics(pinModel, pinData, q);
     updateFramePlacements(pinModel,pinData);
     this->meas.head(3) = pinData.oMf[this->ID].translation(); //Position
     this->meas.segment(3,3) = getFrameVelocity(pinModel, pinData, this->ID).angular(); //Velocity
@@ -74,13 +74,46 @@ int Sensor::getNbMeasVar(){
 	return this->nb_meas_var;
 }
 
+void Sensor::setPosADFun(ADModel const & pinADModel, ADData & pinADData){
+	        /**Set an AD configuration ad_q **/
+
+	        ADConfigVectorType ad_q(pinADModel.nv);
+	        ADConfigVectorType & X = ad_q;
+	        CppAD::Independent(X);
+
+	        pin::forwardKinematics(pinADModel, pinADData, ad_q);
+	        pin::updateFramePlacements(pinADModel, pinADData);
+	        ADVector pos(3); pos = pinADData.oMf[this->ID].translation();
+
+	        /**Generate AD function and stop recording **/
+	        ADFun<ADScalar> fkine_pos(X,pos);
+	        this->posADFun = fkine_pos;
+}
+
+void Sensor::setGyrADFun(ADModel const & pinADModel, ADData & pinADData){
+	        /**Set an AD configuration ad_q **/
+			ADConfigVectorType ad_q(pinADModel.nv), ad_dq(pinADModel.nv);
+			ADConfigVectorType X_vel(pinADModel.nv*2);
+			getStateVectAD_vel(X_vel, ad_q, ad_dq);
+	        CppAD::Independent(X_vel);
+
+	        pin::forwardKinematics(pinADModel, pinADData, ad_q, ad_dq);
+	        pin::updateFramePlacements(pinADModel, pinADData);
+	        ADVector pos(3); pos = pinADData.oMf[this->ID].translation();
+
+	        /**Generate AD function and stop recording **/
+	        ADFun<ADScalar> fkine_pos(X,pos);
+	        this->posADFun = fkine_pos;
+}
 /* -------------- CLASS Limb IMPLEMENTATION -------------*/
 
 Limb::Limb(string const & urdf_filename, int const & nb_state_variables, int const & nb_measurement_variables){
 
-    pinocchio::urdf::buildModel(urdf_filename, this->pinModel);
+    pin::urdf::buildModel(urdf_filename, this->pinModel);
     this->pinData = Data(this->pinModel);
     this->setDataDimensions(nb_state_variables, nb_measurement_variables);
+    this->CppADModel = this->pinModel.cast<ADScalar>();
+    this->CppADData(this->CppADModel);
 }
 Limb::~Limb(){
 

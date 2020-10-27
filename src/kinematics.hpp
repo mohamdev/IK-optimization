@@ -11,7 +11,7 @@
 
 /* ----------- ENUMS sensorType and dataType ------------- */
 enum sensorType{
-	POS, GYR, ACC, QUAT, q, dq, ddq
+	POS, GYR, ACC, QUAT//, q, dq, ddq
 };
 enum dataType{
 	EST, REF, MEAS
@@ -34,10 +34,10 @@ typedef struct _JointStates{
  * */
 typedef struct _Trajectories{
 	dataType typeDat;
-	vector<ScalarVector> qTraj;
-	vector<ScalarVector> dqTraj;
-	vector<ScalarVector> ddqTraj;
-	vector<ScalarVector> measTraj;
+	std::vector<ScalarVector> qTraj;
+	std::vector<ScalarVector> dqTraj;
+	std::vector<ScalarVector> ddqTraj;
+	std::vector<ScalarVector> measTraj;
 }Trajectories;
 
 /* ------------ CLASS Sensor DECLARATION ------------- */
@@ -50,6 +50,10 @@ private:
 	Eigen::Vector3d g; //Gravity constant
 	Eigen::Matrix3d R; //rotation matrix
 public:
+	ADFun<ADScalar> posADFun;
+	ADFun<ADScalar> gyrADFun;
+	ADFun<ADScalar> accADFun;
+	ADFun<ADScalar> quatADFun;
 	Sensor();
 	Sensor(Model const & model, int const & nb_meas_variables, dataType const & typeData, std::string ID);
 	~Sensor();
@@ -59,7 +63,11 @@ public:
 	void setMeas(Model const & pinModel, Data & pinData, JointStates const & dataLimb);
 	void setMeas(Model const & pinModel, Data & pinData, ScalarVector const & q);
 	void setMeas(Model const & pinModel, Data & pinData, ScalarVector const & q, ScalarVector const & dq);
-
+	void setPosADFun(ADModel const & pinADModel, ADData & pinADData);
+	void setGyrADFun(ADModel const & pinADModel, ADData & pinADData);
+	void setAccADFun(ADModel const & pinADModel, ADData & pinADData);
+	void setQuatADFun(ADModel const & pinADModel, ADData & pinADData);
+	void setADFuns(ADModel const & pinADModel, ADData const & pinADData);
 	int getID() const;
 	void setID(std::string newID);
 
@@ -75,8 +83,8 @@ public:
 /* ------------ CLASS Limb DECLARATION ------------- */
 class Limb {
 private:
-	vector<Sensor> estSensors;
-	vector<Sensor> refSensors;
+	std::vector<Sensor> estSensors;
+	std::vector<Sensor> refSensors;
 	JointStates estState;
 	JointStates refState;
 	ScalarVector refMeas;
@@ -84,8 +92,10 @@ private:
 public:
 	Model pinModel;
 	Data pinData;
-	vector<Scalar> t;
-	vector<int> timesample;
+	ADModel CppADModel;
+	ADData CppADData;
+	std::vector<Scalar> t;
+	std::vector<int> timesample;
 	Trajectories estTraj;
 	Trajectories refTraj;
 

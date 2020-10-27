@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <Eigen/Dense>
 #include <vector>
+#include "kinematics.hpp"
 using namespace std;
 typedef double Scalar;
 typedef Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> ScalarMatrix;
@@ -22,7 +23,8 @@ typedef Eigen::Matrix<Scalar,Eigen::Dynamic,1> ScalarVector;
 
 using namespace Ipopt;
 
-class simplePol_NLP: public TNLP
+
+class simplePol_NLP: public Ipopt::TNLP
 {
 public:
 	simplePol_NLP(Scalar const & firstPoint);
