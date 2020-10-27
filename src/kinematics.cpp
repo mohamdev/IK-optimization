@@ -107,6 +107,23 @@ void Sensor::setGyrADFun(ADModel const & pinADModel, ADData & pinADData){
 	        this->gyrADFun = fkine_gyr;
 }
 
+void Sensor::setAccADFun(ADModel const & pinADModel, ADData & pinADData){
+	        /**Set an AD configuration ad_q **/
+			ADConfigVectorType ad_q(pinADModel.nv), ad_dq(pinADModel.nv), ad_ddq(pinADModel.nv);
+			ADConfigVectorType X_acc(pinADModel.nv*3);
+
+	        Independent(X_acc);
+
+	        x_to_q_dq_ddq(X_acc, ad_q, ad_dq, ad_ddq);
+	        pin::forwardKinematics(pinADModel, pinADData, ad_q, ad_dq, ad_ddq);
+	        pin::updateFramePlacements(pinADModel, pinADData);
+	        ADMatrix R = ADMatrix::Zero(3,3); R = pinADData.oMf[this->ID].rotation();
+	        ADVector acc(3); acc = getFrameAcceleration(pinADModel, pinADData, this->ID).linear() + R.transpose()*this->g;
+
+	        /**Generate AD function and stop recording **/
+	        ADFun<ADScalar> fkine_acc(X_acc,acc);
+	        this->accADFun = fkine_acc;
+}
 /* -------------- CLASS Limb IMPLEMENTATION -------------*/
 
 Limb::Limb(string const & urdf_filename, int const & nb_state_variables, int const & nb_measurement_variables){

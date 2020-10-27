@@ -63,4 +63,6 @@ void eigen2vector(std::vector<ScalarVector> const& eigenMat, std::vector<std::ve
 template <typename eigenVect>
 void x_to_q_dq(eigenVect const & Xvel, eigenVect & q, eigenVect & dq);
 
+template <typename eigenVect>
+void x_to_q_dq_ddq(eigenVect const & Xvel, eigenVect & q, eigenVect & dq, eigenVect & ddq);
 #endif /* UTILS_H_ */
