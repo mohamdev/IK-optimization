@@ -90,6 +90,23 @@ void Sensor::setPosADFun(ADModel const & pinADModel, ADData & pinADData){
 	        this->posADFun = fkine_pos;
 }
 
+void Sensor::setQuatADFun(ADModel const & pinADModel, ADData & pinADData){
+	        /**Set an AD configuration ad_q **/
+			ADConfigVectorType ad_q(pinADModel.nv);
+			ADConfigVectorType & X = ad_q;
+
+	        Independent(X);
+
+	        pin::forwardKinematics(pinADModel, pinADData, ad_q);
+	        pin::updateFramePlacements(pinADModel, pinADData);
+	        ADMatrix R = ADMatrix::Zero(3,3); R = pinADData.oMf[this->ID].rotation();
+	        ADVector quat(4); rot2quatAD(R,quat);
+
+	        /**Generate AD function and stop recording **/
+	        ADFun<ADScalar> fkine_quat(X,quat);
+	        this->quatADFun = fkine_quat;
+}
+
 void Sensor::setGyrADFun(ADModel const & pinADModel, ADData & pinADData){
 	        /**Set an AD configuration ad_q **/
 			ADConfigVectorType ad_q(pinADModel.nv), ad_dq(pinADModel.nv);

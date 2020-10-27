@@ -105,9 +105,8 @@ Eigen::Vector4d rot2quat(Eigen::Matrix3d const & R)
     return quat;
 }
 
-ADVector rot2quatAD(ADMatrix const & R)
+void rot2quatAD(ADMatrix const & R, ADVector & Q)
 {
-	ADVector Q = ADMatrix::Zero(4,1);
     ADScalar Tr;
     Tr = R(0,0) + R(1,1) + R(2,2);
     ADScalar S = sqrt(Tr+1.0)*2.0;
@@ -116,8 +115,7 @@ ADVector rot2quatAD(ADMatrix const & R)
     Q(2) = (R(0,2) - R(2,0))/S;
     Q(3) = (R(1,0) - R(0,1))/S;
 
-    return Q;
-//
+
 //        if (Tr>0)
 //    {
 //        ADScalar S;
@@ -164,5 +162,15 @@ void x_to_q_dq(eigenVect const & Xvel, eigenVect & q, eigenVect & dq)
 	}
 }
 
+template <typename eigenVect>
+void x_to_q_dq_ddq(eigenVect const & Xvel, eigenVect & q, eigenVect & dq, eigenVect & ddq)
+{
+	for(int j = 0; j<q.rows(); j++)
+	{
+		q(j) = Xvel(j);
+		dq(j) = Xvel(j+q.rows());
+		ddq(j) = Xvel(j+2*q.rows());
+	}
+}
 
 
