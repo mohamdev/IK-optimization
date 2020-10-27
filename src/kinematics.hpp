@@ -67,7 +67,7 @@ public:
 	void setGyrADFun(ADModel const & pinADModel, ADData & pinADData);
 	void setAccADFun(ADModel const & pinADModel, ADData & pinADData);
 	void setQuatADFun(ADModel const & pinADModel, ADData & pinADData);
-	void setADFuns(ADModel const & pinADModel, ADData const & pinADData);
+	void setADFuns(ADModel const & pinADModel, ADData & pinADData);
 	int getID() const;
 	void setID(std::string newID);
 

@@ -141,6 +141,13 @@ void Sensor::setAccADFun(ADModel const & pinADModel, ADData & pinADData){
 	        ADFun<ADScalar> fkine_acc(X_acc,acc);
 	        this->accADFun = fkine_acc;
 }
+
+void Sensor::setADFuns(ADModel const & pinADModel, ADData & pinADData){
+	this->setPosADFun(pinADModel, pinADData);
+	this->setGyrADFun(pinADModel, pinADData);
+	this->setAccADFun(pinADModel, pinADData);
+	this->setQuatADFun(pinADModel, pinADData);
+}
 /* -------------- CLASS Limb IMPLEMENTATION -------------*/
 
 Limb::Limb(string const & urdf_filename, int const & nb_state_variables, int const & nb_measurement_variables){
@@ -179,6 +186,7 @@ ScalarVector Limb::getMeas(dataType const & typeData) const{
 void Limb::addSensor(int const & nb_sensor_var, string ID){
 	Sensor newEstSensor(this->pinModel, nb_sensor_var, EST, ID);
 	Sensor newRefSensor(this->pinModel, nb_sensor_var, REF, ID);
+	newEstSensor.setADFuns(this->pinADModel, this->pinADData);
 	this->estSensors.push_back(newEstSensor);
 	this->refSensors.push_back(newRefSensor);
 }
