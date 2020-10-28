@@ -12,6 +12,7 @@
 #define UTILS_H_
 
 #include <Eigen/Dense>
+#include <Eigen/Core>
 #include <vector>
 #include <stdlib.h>
 #include <random>
@@ -27,11 +28,12 @@
 #include "pinocchio/parsers/urdf.hpp"
 #include "pinocchio/algorithm/joint-configuration.hpp"
 #include "pinocchio/algorithm/kinematics.hpp"
-#include "pinocchio/codegen/cppadcg.hpp"
+//#include "pinocchio/codegen/cppadcg.hpp"
 //#include <urdf_parser/urdf_parser.h>
 #include <pinocchio/algorithm/frames.hpp>
-#include "pinocchio/codegen/cppadcg.hpp"
-# include <cppad/cppad.hpp> // the CppAD package
+//#include "pinocchio/codegen/cppadcg.hpp"
+#include "pinocchio/autodiff/cppad.hpp"
+#include <cppad/cppad.hpp> // the CppAD package
 #include <Eigen/Geometry>
 #ifndef PINOCCHIO_MODEL_DIR
 #define PINOCCHIO_MODEL_DIR "path_to_the_model_dir"
@@ -60,9 +62,32 @@ void rot2quatAD(ADMatrix const & R, ADVector & Q);
 void eigen2vector(ScalarMatrix const& eigenMat, std::vector<std::vector<double>> & returnedVect);
 void eigen2vector(std::vector<ScalarVector> const& eigenMat, std::vector<std::vector<Scalar>> & returnedVect);
 
+//template <typename eigenVect>
+//void x_to_q_dq(ADVector const & Xvel, ADVector & q, ADVector & dq);
 template <typename eigenVect>
 void x_to_q_dq(eigenVect const & Xvel, eigenVect & q, eigenVect & dq);
 
 template <typename eigenVect>
 void x_to_q_dq_ddq(eigenVect const & Xvel, eigenVect & q, eigenVect & dq, eigenVect & ddq);
+
+template <typename eigenVect>
+void x_to_q_dq(eigenVect const & Xvel, eigenVect & q, eigenVect & dq)
+{
+	for(int j = 0; j<q.rows(); j++)
+	{
+		q(j) = Xvel(j);
+		dq(j) = Xvel(j+q.rows());
+	}
+}
+
+template <typename eigenVect>
+void x_to_q_dq_ddq(eigenVect const & Xvel, eigenVect & q, eigenVect & dq, eigenVect & ddq)
+{
+	for(int j = 0; j<q.rows(); j++)
+	{
+		q(j) = Xvel(j);
+		dq(j) = Xvel(j+q.rows());
+		ddq(j) = Xvel(j+2*q.rows());
+	}
+}
 #endif /* UTILS_H_ */

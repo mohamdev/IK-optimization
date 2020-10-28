@@ -79,67 +79,77 @@ void Sensor::setPosADFun(ADModel const & pinADModel, ADData & pinADData){
 
 	        ADConfigVectorType ad_q(pinADModel.nv);
 	        ADConfigVectorType & X = ad_q;
-	        CppAD::Independent(X);
+	        ADVector refPos = ADMatrix::Zero(3,1);
+	        CppAD::Independent(X, refPos);//, refPos);
 
 	        pin::forwardKinematics(pinADModel, pinADData, ad_q);
 	        pin::updateFramePlacements(pinADModel, pinADData);
 	        ADVector pos(3); pos = pinADData.oMf[this->ID].translation();
-
+	        ADVector res(1);
+	        res(0) = (pos - refPos).squaredNorm();
 	        /**Generate AD function and stop recording **/
-	        ADFun<ADScalar> fkine_pos(X,pos);
-	        this->posADFun = fkine_pos;
+	        ADFun<Scalar> posCost(X, res);
+	        this->posCostFun = posCost;
 }
 
 void Sensor::setQuatADFun(ADModel const & pinADModel, ADData & pinADData){
 	        /**Set an AD configuration ad_q **/
 			ADConfigVectorType ad_q(pinADModel.nv);
 			ADConfigVectorType & X = ad_q;
-
-	        Independent(X);
+			ADVector refQuat = ADMatrix::Zero(4,1);
+	        Independent(X, refQuat);
 
 	        pin::forwardKinematics(pinADModel, pinADData, ad_q);
 	        pin::updateFramePlacements(pinADModel, pinADData);
 	        ADMatrix R = ADMatrix::Zero(3,3); R = pinADData.oMf[this->ID].rotation();
 	        ADVector quat(4); rot2quatAD(R,quat);
+	        ADVector res(1);
+	        res(0) = (quat - refQuat).squaredNorm();
 
 	        /**Generate AD function and stop recording **/
-	        ADFun<ADScalar> fkine_quat(X,quat);
-	        this->quatADFun = fkine_quat;
+	        ADFun<Scalar> fkine_quat(X,res);
+	        this->quatCostFun = fkine_quat;
 }
-
+//
 void Sensor::setGyrADFun(ADModel const & pinADModel, ADData & pinADData){
 	        /**Set an AD configuration ad_q **/
-			ADConfigVectorType ad_q(pinADModel.nv), ad_dq(pinADModel.nv);
-			ADConfigVectorType X_vel(pinADModel.nv*2);
 
-	        CppAD::Independent(X_vel);
+			ADVector X_vel(pinADModel.nv*2);
+			ADVector refGyr = ADMatrix::Zero(3,1);
+	        CppAD::Independent(X_vel, refGyr);
 
-	        x_to_q_dq(X_vel, ad_q, ad_dq);
+	        ADVector ad_q(pinADModel.nv), ad_dq(pinADModel.nv);
+	        x_to_q_dq<ADVector>(X_vel, ad_q, ad_dq);
 	        pin::forwardKinematics(pinADModel, pinADData, ad_q, ad_dq);
 	        pin::updateFramePlacements(pinADModel, pinADData);
 	        ADVector gyr(3); gyr = getFrameVelocity(pinADModel, pinADData, this->ID).angular();
-
+	        ADVector res(1);
+	        res(0) = (gyr - refGyr).squaredNorm();
 	        /**Generate AD function and stop recording **/
-	        ADFun<ADScalar> fkine_gyr(X_vel,gyr);
-	        this->gyrADFun = fkine_gyr;
+	        ADFun<Scalar> fkine_gyr(X_vel,res);
+	        this->gyrCostFun = fkine_gyr;
 }
 
 void Sensor::setAccADFun(ADModel const & pinADModel, ADData & pinADData){
 	        /**Set an AD configuration ad_q **/
-			ADConfigVectorType ad_q(pinADModel.nv), ad_dq(pinADModel.nv), ad_ddq(pinADModel.nv);
-			ADConfigVectorType X_acc(pinADModel.nv*3);
 
-	        Independent(X_acc);
+			ADVector X_acc(pinADModel.nv*3);
+			ADVector refAcc = ADMatrix::Zero(3,1);
 
-	        x_to_q_dq_ddq(X_acc, ad_q, ad_dq, ad_ddq);
+	        Independent(X_acc, refAcc);
+	        ADVector ad_q(pinADModel.nv), ad_dq(pinADModel.nv), ad_ddq(pinADModel.nv);
+			ADVector g = ADMatrix::Zero(3,1);
+			g(2) = 9.806;
+	        x_to_q_dq_ddq<ADVector>(X_acc, ad_q, ad_dq, ad_ddq);
 	        pin::forwardKinematics(pinADModel, pinADData, ad_q, ad_dq, ad_ddq);
 	        pin::updateFramePlacements(pinADModel, pinADData);
 	        ADMatrix R = ADMatrix::Zero(3,3); R = pinADData.oMf[this->ID].rotation();
-	        ADVector acc(3); acc = getFrameAcceleration(pinADModel, pinADData, this->ID).linear() + R.transpose()*this->g;
-
+	        ADVector acc(3); acc = getFrameAcceleration(pinADModel, pinADData, this->ID).linear() + R.transpose()*g;
+	        ADVector res(1);
+	        res(0) = (acc - refAcc).squaredNorm();
 	        /**Generate AD function and stop recording **/
-	        ADFun<ADScalar> fkine_acc(X_acc,acc);
-	        this->accADFun = fkine_acc;
+	        ADFun<Scalar> fkine_acc(X_acc,res);
+	        this->accCostFun = fkine_acc;
 }
 
 void Sensor::setADFuns(ADModel const & pinADModel, ADData & pinADData){
@@ -156,7 +166,8 @@ Limb::Limb(string const & urdf_filename, int const & nb_state_variables, int con
     this->pinData = Data(this->pinModel);
     this->setDataDimensions(nb_state_variables, nb_measurement_variables);
     this->CppADModel = this->pinModel.cast<ADScalar>();
-    this->CppADData(this->CppADModel);
+    ADData newDat(this->CppADModel);
+    this->CppADData = newDat;
 }
 Limb::~Limb(){
 
@@ -186,7 +197,7 @@ ScalarVector Limb::getMeas(dataType const & typeData) const{
 void Limb::addSensor(int const & nb_sensor_var, string ID){
 	Sensor newEstSensor(this->pinModel, nb_sensor_var, EST, ID);
 	Sensor newRefSensor(this->pinModel, nb_sensor_var, REF, ID);
-	newEstSensor.setADFuns(this->pinADModel, this->pinADData);
+	newEstSensor.setADFuns(this->CppADModel, this->CppADData);
 	this->estSensors.push_back(newEstSensor);
 	this->refSensors.push_back(newRefSensor);
 }

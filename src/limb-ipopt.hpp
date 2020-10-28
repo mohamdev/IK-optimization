@@ -1,12 +1,12 @@
 /*
- * simple-polynom-ipopt.hpp
+ * limb-ipopt.hpp
  *
- *  Created on: 23 Oct 2020
+ *  Created on: 27 Oct 2020
  *      Author: aladinedev2
  */
 
-#ifndef SIMPLE_POLYNOM_IPOPT_HPP_
-#define SIMPLE_POLYNOM_IPOPT_HPP_
+#ifndef LIMB_IPOPT_HPP_
+#define LIMB_IPOPT_HPP_
 
 #include "IpTNLP.hpp"
 
@@ -23,12 +23,11 @@ typedef Eigen::Matrix<Scalar,Eigen::Dynamic,1> ScalarVector;
 
 using namespace Ipopt;
 
-
-class simplePol_NLP: public Ipopt::TNLP
+class Limb_NLP: public Ipopt::TNLP
 {
 public:
-	simplePol_NLP(Scalar const & firstPoint);
-	virtual ~simplePol_NLP();
+	Limb_NLP(Scalar const & firstPoint);
+	virtual ~Limb_NLP();
    void setEvalPoint(Scalar const & newEvalPoint);
    std::vector<Scalar> getEvalTrajectory();
 	   virtual bool get_nlp_info(
@@ -115,16 +114,17 @@ private:
    Scalar evalPoint;
    Scalar estPoint;
    std::vector<Scalar> evalTrajectory;
-   simplePol_NLP(
-      const simplePol_NLP&
+   Limb_NLP(
+      const Limb_NLP&
    );
 
-   simplePol_NLP& operator=(
-      const simplePol_NLP&
+   Limb_NLP& operator=(
+      const Limb_NLP&
    );
 };
 
 
 
 
-#endif /* SIMPLE_POLYNOM_IPOPT_HPP_ */
+
+#endif /* LIMB_IPOPT_HPP_ */

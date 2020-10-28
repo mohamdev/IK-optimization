@@ -1,14 +1,14 @@
 /*
- * simple-polynom-ipopt.cpp
+ * limb-ipopt.cpp
  *
- *  Created on: 23 Oct 2020
+ *  Created on: 27 Oct 2020
  *      Author: aladinedev2
  */
 
 
 
 
-#include "simple-polynom-ipopt.hpp"
+#include "limb-ipopt.hpp"
 //#include "IpTNLP.hpp"
 //#include "kinematics.hpp"
 //#include <stdlib.h>
@@ -16,23 +16,23 @@
 
 using namespace Ipopt;
 
-simplePol_NLP::simplePol_NLP(Scalar const & firstPoint){
+Limb_NLP::Limb_NLP(Scalar const & firstPoint){
 	this->setEvalPoint(firstPoint);
 	this->estPoint = 0;
 }
-simplePol_NLP::~simplePol_NLP(){
+Limb_NLP::~Limb_NLP(){
 
 }
 
-void simplePol_NLP::setEvalPoint(Scalar const & newEvalPoint){
+void Limb_NLP::setEvalPoint(Scalar const & newEvalPoint){
 	this->evalPoint = newEvalPoint;
 }
 
-std::vector<Scalar> simplePol_NLP::getEvalTrajectory(){
+std::vector<Scalar> Limb_NLP::getEvalTrajectory(){
 	return this->evalTrajectory;
 }
 // returns the size of the problem
-bool simplePol_NLP::get_nlp_info(
+bool Limb_NLP::get_nlp_info(
    Index&          n,
    Index&          m,
    Index&          nnz_jac_g,
@@ -54,7 +54,7 @@ bool simplePol_NLP::get_nlp_info(
    return true;
 }
 
-bool simplePol_NLP::get_bounds_info(
+bool Limb_NLP::get_bounds_info(
    Index   n,
    Number* x_l,
    Number* x_u,
@@ -86,7 +86,7 @@ bool simplePol_NLP::get_bounds_info(
 }
 
 // returns the initial point for the problem
-bool simplePol_NLP::get_starting_point(
+bool Limb_NLP::get_starting_point(
    Index   n,
    bool    init_x,
    Number* x,
@@ -110,7 +110,7 @@ bool simplePol_NLP::get_starting_point(
    return true;
 }
 
-bool simplePol_NLP::eval_f(
+bool Limb_NLP::eval_f(
    Index         n,
    const Number* x,
    bool          new_x,
@@ -124,7 +124,7 @@ bool simplePol_NLP::eval_f(
 }
 
 // return the gradient of the objective function grad_{x} f(x)
-bool simplePol_NLP::eval_grad_f(
+bool Limb_NLP::eval_grad_f(
    Index         n,
    const Number* x,
    bool          new_x,
@@ -137,7 +137,7 @@ bool simplePol_NLP::eval_grad_f(
 }
 
 // return the value of the constraints: g(x)
-bool simplePol_NLP::eval_g(
+bool Limb_NLP::eval_g(
    Index         n,
    const Number* x,
    bool          new_x,
@@ -151,7 +151,7 @@ bool simplePol_NLP::eval_g(
    g[1] = cos(x[0]);
    return true;
 }
-bool simplePol_NLP::eval_jac_g(
+bool Limb_NLP::eval_jac_g(
    Index         n,
    const Number* x,
    bool          new_x,
@@ -177,7 +177,7 @@ bool simplePol_NLP::eval_jac_g(
 
 	return true;
 }
-void simplePol_NLP::finalize_solution(
+void Limb_NLP::finalize_solution(
    SolverReturn               status,
    Index                      n,
    const Number*              x,

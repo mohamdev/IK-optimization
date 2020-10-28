@@ -49,11 +49,12 @@ private:
 	dataType typeDat;
 	Eigen::Vector3d g; //Gravity constant
 	Eigen::Matrix3d R; //rotation matrix
+
 public:
-	ADFun<ADScalar> posADFun;
-	ADFun<ADScalar> gyrADFun;
-	ADFun<ADScalar> accADFun;
-	ADFun<ADScalar> quatADFun;
+	ADFun<Scalar> posCostFun;
+	ADFun<Scalar> gyrCostFun;
+	ADFun<Scalar> accCostFun;
+	ADFun<Scalar> quatCostFun;
 	Sensor();
 	Sensor(Model const & model, int const & nb_meas_variables, dataType const & typeData, std::string ID);
 	~Sensor();
@@ -83,17 +84,23 @@ public:
 /* ------------ CLASS Limb DECLARATION ------------- */
 class Limb {
 private:
-	std::vector<Sensor> estSensors;
-	std::vector<Sensor> refSensors;
 	JointStates estState;
 	JointStates refState;
 	ScalarVector refMeas;
 	ScalarVector estMeas;
 public:
+	std::vector<Sensor> estSensors;
+	std::vector<Sensor> refSensors;
 	Model pinModel;
 	Data pinData;
 	ADModel CppADModel;
 	ADData CppADData;
+//
+//	ADFun<Scalar> posCostFunc;
+//	ADFun<Scalar> gyrCostFunc;
+//	ADFun<Scalar> accCostFunc;
+//	ADFun<Scalar> quatCostFunc;
+
 	std::vector<Scalar> t;
 	std::vector<int> timesample;
 	Trajectories estTraj;
@@ -101,6 +108,11 @@ public:
 
 	Limb(string const & urdf_filename, int const & nb_states, int const & nb_measurements);
 	~Limb();
+
+	void setPosCostFunc();
+	void setGyrCostFunc();
+	void setAccCostFunc();
+	void setQuatCostFunc();
 
 	void setDataDimensions(int const & nb_states, int const & nb_measurements);
 

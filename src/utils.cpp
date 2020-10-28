@@ -152,25 +152,6 @@ void rot2quatAD(ADMatrix const & R, ADVector & Q)
 
 }
 
-template <typename eigenVect>
-void x_to_q_dq(eigenVect const & Xvel, eigenVect & q, eigenVect & dq)
-{
-	for(int j = 0; j<q.rows(); j++)
-	{
-		q(j) = Xvel(j);
-		dq(j) = Xvel(j+q.rows());
-	}
-}
 
-template <typename eigenVect>
-void x_to_q_dq_ddq(eigenVect const & Xvel, eigenVect & q, eigenVect & dq, eigenVect & ddq)
-{
-	for(int j = 0; j<q.rows(); j++)
-	{
-		q(j) = Xvel(j);
-		dq(j) = Xvel(j+q.rows());
-		ddq(j) = Xvel(j+2*q.rows());
-	}
-}
 
 
