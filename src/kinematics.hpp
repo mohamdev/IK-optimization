@@ -56,6 +56,10 @@ public:
 	ADFun<Scalar> gyrCostFun;
 	ADFun<Scalar> accCostFun;
 	ADFun<Scalar> quatCostFun;
+	ScalarVector jacPos;
+	ScalarVector jacGyr;
+	ScalarVector jacAcc;
+	ScalarVector jacQuat;
 	Scalar residual;
 	std::vector<Scalar> residuals;
 	Sensor();
@@ -75,7 +79,7 @@ public:
 	void setADFuns(ADModel const & pinADModel, ADData & pinADData);
 
 	ScalarMatrix getSensorJacobian(ADModel const & pinADModel, ADData & pinADData) const;
-	void setSensorResiduals(Model const & pinModel, Data & pinData, JointStates const & refStates, JointStates const & estStates);
+	void setResiduals_and_Jacobian(Model const & pinModel, Data & pinData, JointStates const & refStates, JointStates const & estStates);
 
 	int getID() const;
 	void setID(std::string newID);

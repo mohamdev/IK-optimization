@@ -171,7 +171,7 @@ void Sensor::setADFuns(ADModel const & pinADModel, ADData & pinADData){
 	this->setQuatADFun(pinADModel, pinADData);
 }
 
-void Sensor::setSensorResiduals(Model const & pinModel, Data & pinData, JointStates const & refStates, JointStates const & estStates){
+void Sensor::setResiduals_and_Jacobian(Model const & pinModel, Data & pinData, JointStates const & refStates, JointStates const & estStates){
 
 	this->setMeas(pinModel, pinData, refStates);
 	this->setMeas(pinModel, pinData, estStates);
@@ -191,10 +191,17 @@ void Sensor::setSensorResiduals(Model const & pinModel, Data & pinData, JointSta
     q_dq_to_x(Xq_dq, estStates.q, estStates.dq);
     q_dq_ddq_to_x(Xq_dq_ddq, estStates.q, estStates.dq, estStates.ddq);
 
-    ScalarVector residual(1);
-    residual = this->posCostFun.Forward(0,Xq) + this->gyrCostFun.Forward(0,Xq_dq) + this->accCostFun.Forward(0,Xq_dq_ddq) + this->quatCostFun.Forward(0,Xq);
+    this->residual = (this->posCostFun.Forward(0,Xq) + this->gyrCostFun.Forward(0,Xq_dq) + this->accCostFun.Forward(0,Xq_dq_ddq) + this->quatCostFun.Forward(0,Xq))(0);
 
+    this->jacPos = this->posCostFun.Jacobian(Xq);
+    this->jacGyr = this->gyrCostFun.Jacobian(Xq_dq);
+    this->jacAcc = this->accCostFun.Jacobian(Xq_dq_ddq);
+    this->jacQuat = this->quatCostFun.Jacobian(Xq);
 }
+
+
+
+
 /* -------------- CLASS Limb IMPLEMENTATION -------------*/
 
 Limb::Limb(string const & urdf_filename, int const & nb_state_variables, int const & nb_measurement_variables){
