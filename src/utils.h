@@ -90,4 +90,31 @@ void x_to_q_dq_ddq(eigenVect const & Xvel, eigenVect & q, eigenVect & dq, eigenV
 		ddq(j) = Xvel(j+2*q.rows());
 	}
 }
+
+template <typename eigenVect>
+void q_dq_to_x(eigenVect & Xvel, eigenVect const & q, eigenVect const & dq);
+
+template <typename eigenVect>
+void q_dq_to_x(eigenVect & Xvel, eigenVect const & q, eigenVect const & dq)
+{
+	for(int j = 0; j<q.rows()*2; j++)
+	{
+		Xvel(j) = q(j);
+		Xvel(j+q.rows()) = dq(j);
+	}
+}
+
+template <typename eigenVect>
+void q_dq_ddq_to_x(eigenVect & Xvel, eigenVect const & q, eigenVect const & dq);
+
+template <typename eigenVect>
+void q_dq_ddq_to_x(eigenVect & Xacc, eigenVect const & q, eigenVect const & dq, eigenVect const & ddq)
+{
+	for(int j = 0; j<q.rows()*3; j++)
+	{
+		Xacc(j) = q(j);
+		Xacc(j+q.rows()) = dq(j);
+		Xacc(j+q.rows()*2) = ddq(j);
+	}
+}
 #endif /* UTILS_H_ */

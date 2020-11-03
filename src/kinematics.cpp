@@ -16,6 +16,7 @@ Sensor::Sensor(Model const & model, int const & nb_meas_variables, dataType cons
 	this->setDataType(typeData);
 	this->nb_meas_var = nb_meas_variables;
 	this->meas = ScalarMatrix::Zero(nb_meas_variables, 1);
+	this->refMeas = ScalarMatrix::Zero(nb_meas_variables, 1);
 	this->ID = model.getFrameId(ID);
 	Eigen::Vector3d gravity(0,0,9.806);
 	this->g = gravity;
@@ -40,13 +41,24 @@ void Sensor::setMeas(ScalarVector const & newValue){
 
 }
 void Sensor::setMeas(Model const & pinModel, Data & pinData, JointStates const & dataLimb){
-    pinocchio::forwardKinematics(pinModel, pinData, dataLimb.q, dataLimb.dq, dataLimb.ddq);
-    updateFramePlacements(pinModel,pinData);
-    this->meas.head(3) = pinData.oMf[this->ID].translation(); //Position
-    this->meas.segment(3,3) = getFrameVelocity(pinModel, pinData, this->ID).angular(); //Velocity
-    this->R = pinData.oMf[this->ID].rotation(); //Rotation
-    this->meas.segment(6,3) = getFrameAcceleration(pinModel, pinData, this->ID).angular() + this->R.transpose()*this->g; //Acceleration
-    this->meas.tail(4) = rot2quat(R); //Quaternion
+	if(dataLimb.typeDat == REF){
+	    pinocchio::forwardKinematics(pinModel, pinData, dataLimb.q, dataLimb.dq, dataLimb.ddq);
+	    updateFramePlacements(pinModel,pinData);
+	    this->refMeas.head(3) = pinData.oMf[this->ID].translation(); //Position
+	    this->refMeas.segment(3,3) = getFrameVelocity(pinModel, pinData, this->ID).angular(); //Velocity
+	    this->R = pinData.oMf[this->ID].rotation(); //Rotation
+	    this->refMeas.segment(6,3) = getFrameAcceleration(pinModel, pinData, this->ID).angular() + this->R.transpose()*this->g; //Acceleration
+	    this->refMeas.tail(4) = rot2quat(R); //Quaternion
+	}else if(dataLimb.typeDat == EST){
+	    pinocchio::forwardKinematics(pinModel, pinData, dataLimb.q, dataLimb.dq, dataLimb.ddq);
+	    updateFramePlacements(pinModel,pinData);
+	    this->meas.head(3) = pinData.oMf[this->ID].translation(); //Position
+	    this->meas.segment(3,3) = getFrameVelocity(pinModel, pinData, this->ID).angular(); //Velocity
+	    this->R = pinData.oMf[this->ID].rotation(); //Rotation
+	    this->meas.segment(6,3) = getFrameAcceleration(pinModel, pinData, this->ID).angular() + this->R.transpose()*this->g; //Acceleration
+	    this->meas.tail(4) = rot2quat(R); //Quaternion
+	}else std::cout << "dataLimb typeDat not defined" << std::endl;
+
 }
 
 void Sensor::setMeas(Model const & pinModel, Data & pinData, ScalarVector const & q){
@@ -157,6 +169,31 @@ void Sensor::setADFuns(ADModel const & pinADModel, ADData & pinADData){
 	this->setGyrADFun(pinADModel, pinADData);
 	this->setAccADFun(pinADModel, pinADData);
 	this->setQuatADFun(pinADModel, pinADData);
+}
+
+void Sensor::setSensorResiduals(Model const & pinModel, Data & pinData, JointStates const & refStates, JointStates const & estStates){
+
+	this->setMeas(pinModel, pinData, refStates);
+	this->setMeas(pinModel, pinData, estStates);
+	ScalarVector refPos = this->refMeas.head(3);
+	ScalarVector refGyr = this->refMeas.segment(3,3);
+	ScalarVector refAcc = this->refMeas.segment(6,3);
+	ScalarVector refQuat = this->refMeas.tail(4);
+    this->posCostFun.new_dynamic(refPos);
+    this->gyrCostFun.new_dynamic(refGyr);
+    this->accCostFun.new_dynamic(refAcc);
+    this->quatCostFun.new_dynamic(refQuat);
+
+    ScalarVector Xq = ScalarMatrix::Zero(estStates.q.rows(),1);
+    ScalarVector Xq_dq = ScalarMatrix::Zero(estStates.q.rows()*2,1);
+    ScalarVector Xq_dq_ddq = ScalarMatrix::Zero(estStates.q.rows()*3,1);
+
+    q_dq_to_x(Xq_dq, estStates.q, estStates.dq);
+    q_dq_ddq_to_x(Xq_dq_ddq, estStates.q, estStates.dq, estStates.ddq);
+
+    ScalarVector residual(1);
+    residual = this->posCostFun.Forward(0,Xq) + this->gyrCostFun.Forward(0,Xq_dq) + this->accCostFun.Forward(0,Xq_dq_ddq) + this->quatCostFun.Forward(0,Xq);
+
 }
 /* -------------- CLASS Limb IMPLEMENTATION -------------*/
 
