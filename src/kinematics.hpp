@@ -46,8 +46,8 @@ private:
 	ScalarVector meas; //contains the current value of the measurement
 	ScalarVector refMeas;
 	int nb_meas_var;
+	int nb_states;
 	int ID; //contains the id of the sensor, allowing to find it in pinocchio::Model
-	dataType typeDat;
 	Eigen::Vector3d g; //Gravity constant
 	Eigen::Matrix3d R; //rotation matrix
 
@@ -60,13 +60,14 @@ public:
 	ScalarVector jacGyr;
 	ScalarVector jacAcc;
 	ScalarVector jacQuat;
+	ScalarVector resJac;
 	Scalar residual;
 	std::vector<Scalar> residuals;
 	Sensor();
-	Sensor(Model const & model, int const & nb_meas_variables, dataType const & typeData, std::string ID);
+	Sensor(Model const & model, int const & nb_sensor_var, int const & nb_state_variables, std::string ID);
 	~Sensor();
 
-	ScalarVector getMeas() const;
+	ScalarVector getMeas(dataType const & typeData) const;
 	void setMeas(ScalarVector const & newValue);
 	void setMeas(Model const & pinModel, Data & pinData, JointStates const & dataLimb);
 	void setMeas(Model const & pinModel, Data & pinData, ScalarVector const & q);
@@ -80,7 +81,7 @@ public:
 
 	ScalarMatrix getSensorJacobian(ADModel const & pinADModel, ADData & pinADData) const;
 	void setResiduals_and_Jacobian(Model const & pinModel, Data & pinData, JointStates const & refStates, JointStates const & estStates);
-
+	ScalarVector getResidualsJacobian() const;
 	int getID() const;
 	void setID(std::string newID);
 
@@ -96,42 +97,45 @@ public:
 /* ------------ CLASS Limb DECLARATION ------------- */
 class Limb {
 private:
-
 	ScalarVector refMeas;
 	ScalarVector estMeas;
 public:
+	std::vector<Scalar> t;
+	std::vector<int> timesample;
+	Trajectories estTraj;
+	Trajectories refTraj;
 	JointStates estState;
 	JointStates refState;
-	std::vector<Sensor> estSensors;
-	std::vector<Sensor> refSensors;
+	std::vector<Sensor> sensors;
 	Model pinModel;
 	Data pinData;
 	ADModel CppADModel;
 	ADData CppADData;
+	ScalarVector limbResJacobian;
+	int nb_meas;
+	int nb_states;
+	int nb_sensors;
 //
 //	ADFun<Scalar> posCostFunc;
 //	ADFun<Scalar> gyrCostFunc;
 //	ADFun<Scalar> accCostFunc;
 //	ADFun<Scalar> quatCostFunc;
 
-	std::vector<Scalar> t;
-	std::vector<int> timesample;
-	Trajectories estTraj;
-	Trajectories refTraj;
 
-	Limb(string const & urdf_filename, int const & nb_states, int const & nb_measurements);
+
+	Limb(string const & urdf_filename, int const & nb_states, int const & nb_measurements, int const & nb_sensors);
 	~Limb();
 
-	void setPosCostFunc();
-	void setGyrCostFunc();
-	void setAccCostFunc();
-	void setQuatCostFunc();
+//	void setPosCostFunc();
+//	void setGyrCostFunc();
+//	void setAccCostFunc();
+//	void setQuatCostFunc();
 
 	void setDataDimensions(int const & nb_states, int const & nb_measurements);
 
-	void refreshAllSensors(dataType const & typeData);
+	void refreshSensors(dataType const & typeData);
 	ScalarVector getMeas(dataType const & typeData) const;
-	void refreshMeasVector(dataType const & typeData);
+	void refreshLimbMeas(dataType const & typeData);
 
 	void setJointPos(ScalarVector const & newJointPos, dataType const & typeData);
 	ScalarVector getJointPos(dataType const & typeData) const;
@@ -145,6 +149,9 @@ public:
 	void setJointPosVelAcc(dataType const & typeData, ScalarVector const & q, ScalarVector const & dq, ScalarVector const & ddq);
 
 	void addSensor(int const & nb_sensor_var, string ID);
+
+	void setLimb_res_Jacobian();
+	ScalarVector getLimb_res_Jacobian() const;
 };
 
 

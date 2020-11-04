@@ -12,15 +12,20 @@
 #include <iostream>
 
 /* -------------- CLASS Sensor IMPLEMENTATION -------------*/
-Sensor::Sensor(Model const & model, int const & nb_meas_variables, dataType const & typeData, std::string ID){
-	this->setDataType(typeData);
-	this->nb_meas_var = nb_meas_variables;
-	this->meas = ScalarMatrix::Zero(nb_meas_variables, 1);
-	this->refMeas = ScalarMatrix::Zero(nb_meas_variables, 1);
+Sensor::Sensor(Model const & model, int const & nb_sensor_var, int const & nb_state_variables, std::string ID){
+	this->nb_meas_var = nb_sensor_var;
+	this->nb_states = nb_state_variables;
+	this->residual = 0;
+	this->meas = ScalarMatrix::Zero(nb_sensor_var, 1);
+	this->refMeas = ScalarMatrix::Zero(nb_sensor_var, 1);
+	this->jacPos = ScalarMatrix::Zero(nb_state_variables*3, 1);
+	this->jacGyr = ScalarMatrix::Zero(nb_state_variables*3, 1);
+	this->jacAcc = ScalarMatrix::Zero(nb_state_variables*3, 1);
+	this->jacQuat = ScalarMatrix::Zero(nb_state_variables*3, 1);
+	this->resJac = ScalarMatrix::Zero((nb_state_variables*3)*4,1);
 	this->ID = model.getFrameId(ID);
 	Eigen::Vector3d gravity(0,0,9.806);
 	this->g = gravity;
-
 };
 
 Sensor::~Sensor(){
@@ -31,8 +36,14 @@ int Sensor::getSize() const{
 	return this->nb_meas_var;
 }
 
-ScalarVector Sensor::getMeas() const{
-	return this->meas;
+ScalarVector Sensor::getResidualsJacobian() const {
+	return this->resJac.tail(84);
+}
+ScalarVector Sensor::getMeas(dataType const & typeData) const{
+	if (typeData == REF){
+		return this->refMeas;
+	}else return this->meas;
+
 }
 void Sensor::setMeas(ScalarVector const & newValue){
 	if(newValue.rows() == this->meas.rows()){
@@ -73,13 +84,6 @@ void Sensor::setMeas(Model const & pinModel, Data & pinData, ScalarVector const 
 
 int Sensor::getID() const{
 	return this->ID;
-}
-
-dataType Sensor::getDataType() const{
-	return this->typeDat;
-}
-void Sensor::setDataType(dataType typeData){
-	this->typeDat = typeData;
 }
 
 int Sensor::getNbMeasVar(){
@@ -193,10 +197,14 @@ void Sensor::setResiduals_and_Jacobian(Model const & pinModel, Data & pinData, J
 
     this->residual = (this->posCostFun.Forward(0,Xq) + this->gyrCostFun.Forward(0,Xq_dq) + this->accCostFun.Forward(0,Xq_dq_ddq) + this->quatCostFun.Forward(0,Xq))(0);
 
-    this->jacPos = this->posCostFun.Jacobian(Xq);
-    this->jacGyr = this->gyrCostFun.Jacobian(Xq_dq);
+    this->jacPos.head(13) = this->posCostFun.Jacobian(Xq);
+    this->jacGyr.head(26) = this->gyrCostFun.Jacobian(Xq_dq);
     this->jacAcc = this->accCostFun.Jacobian(Xq_dq_ddq);
-    this->jacQuat = this->quatCostFun.Jacobian(Xq);
+    this->jacQuat.head(13) = this->quatCostFun.Jacobian(Xq);
+    this->resJac.head(39) = this->jacPos;
+    this->resJac.segment(39,39) = this->jacGyr;
+    this->resJac.segment(39*2,39) = this->jacAcc;
+    this->resJac.segment(39*3, 39) = this->jacQuat;
 }
 
 
@@ -204,9 +212,10 @@ void Sensor::setResiduals_and_Jacobian(Model const & pinModel, Data & pinData, J
 
 /* -------------- CLASS Limb IMPLEMENTATION -------------*/
 
-Limb::Limb(string const & urdf_filename, int const & nb_state_variables, int const & nb_measurement_variables){
+Limb::Limb(string const & urdf_filename, int const & nb_state_variables, int const & nb_measurement_variables, int const & nb_sensors){
 
     pin::urdf::buildModel(urdf_filename, this->pinModel);
+    this->nb_sensors = nb_sensors;
     this->pinData = Data(this->pinModel);
     this->setDataDimensions(nb_state_variables, nb_measurement_variables);
     this->CppADModel = this->pinModel.cast<ADScalar>();
@@ -218,12 +227,14 @@ Limb::~Limb(){
 };
 
 void Limb::setDataDimensions(int const & nb_state_variables, int const & nb_meas_variables){
+    this->nb_meas = nb_meas_variables;
+    this->nb_states = nb_state_variables;
 	this->estState.typeDat = EST;
 	this->estState.q = ScalarMatrix::Zero(nb_state_variables,1);
 	this->estState.dq = ScalarMatrix::Zero(nb_state_variables,1);
 	this->estState.ddq = ScalarMatrix::Zero(nb_state_variables,1);
 	this->estMeas = ScalarMatrix::Zero(nb_meas_variables,1);
-
+	this->limbResJacobian = ScalarMatrix::Zero(156*3-216,1);
 	this->refState.typeDat = REF;
 	this->refState.q = ScalarMatrix::Zero(nb_state_variables,1);
 	this->refState.dq = ScalarMatrix::Zero(nb_state_variables,1);
@@ -235,53 +246,50 @@ ScalarVector Limb::getMeas(dataType const & typeData) const{
 	if (typeData == REF){
 		return this->refMeas;
 	}else return this->estMeas;
-
 }
 
 void Limb::addSensor(int const & nb_sensor_var, string ID){
-	Sensor newEstSensor(this->pinModel, nb_sensor_var, EST, ID);
-	Sensor newRefSensor(this->pinModel, nb_sensor_var, REF, ID);
-	newEstSensor.setADFuns(this->CppADModel, this->CppADData);
-	this->estSensors.push_back(newEstSensor);
-	this->refSensors.push_back(newRefSensor);
+	Sensor newSensor(this->pinModel, nb_sensor_var, this->nb_states, ID);
+	newSensor.setADFuns(this->CppADModel, this->CppADData);
+	this->sensors.push_back(newSensor);
+
 }
 
-void Limb::refreshAllSensors(dataType const & typeData){
+void Limb::refreshSensors(dataType const & typeData){
 	if(typeData == EST){
-		for (unsigned int i =0; i<this->estSensors.size(); i++)
+		for (unsigned int i =0; i<this->sensors.size(); i++)
 		{
-			this->estSensors[i].setMeas(this->pinModel, this->pinData, this->estState);
+			this->sensors[i].setMeas(this->pinModel, this->pinData, this->estState);
 		}
-		this->refreshMeasVector(typeData);
+		this->refreshLimbMeas(typeData);
 	}else if (typeData == REF){
-		for (unsigned int i =0; i<this->refSensors.size(); i++)
+		for (unsigned int i =0; i<this->sensors.size(); i++)
 		{
-			this->refSensors[i].setMeas(this->pinModel, this->pinData, this->refState);
+			this->sensors[i].setMeas(this->pinModel, this->pinData, this->refState);
 		}
-		this->refreshMeasVector(typeData);
+		this->refreshLimbMeas(typeData);
 	}
 }
 
-void Limb::refreshMeasVector(dataType const & typeData){
+void Limb::refreshLimbMeas(dataType const & typeData){
+
 	if (typeData == EST)
 	{
 		ScalarVector newMeas = ScalarMatrix::Zero(this->estMeas.rows(), 1);
-		for (unsigned int i = 0; i<this->estSensors.size(); i++)
+		for (unsigned int i = 0; i<this->sensors.size(); i++)
 		{
-			this->estMeas.segment(i*this->estSensors[i].getNbMeasVar(), this->estSensors[i].getNbMeasVar()) = this->estSensors[i].getMeas();
+			this->estMeas.segment(i*this->sensors[i].getNbMeasVar(), this->sensors[i].getNbMeasVar()) = this->sensors[i].getMeas(EST);
 		}
 		this->estTraj.measTraj.push_back(this->estMeas);
 	}else if (typeData == REF)
 	{
 		ScalarVector newMeas = ScalarMatrix::Zero(this->refMeas.rows(), 1);
-		for (unsigned int i = 0; i<this->refSensors.size(); i++)
+		for (unsigned int i = 0; i<this->sensors.size(); i++)
 		{
-			this->refMeas.segment(i*this->refSensors[i].getNbMeasVar(), this->refSensors[i].getNbMeasVar()) = this->refSensors[i].getMeas();
+			this->refMeas.segment(i*this->sensors[i].getNbMeasVar(), this->sensors[i].getNbMeasVar()) = this->sensors[i].getMeas(REF);
 		}
 		this->refTraj.measTraj.push_back(this->refMeas);
 	}
-
-
 }
 
 void Limb::setJointPos(ScalarVector const & newJointPos, dataType const & typeData){
@@ -290,6 +298,7 @@ void Limb::setJointPos(ScalarVector const & newJointPos, dataType const & typeDa
 		this->refTraj.qTraj.push_back(newJointPos);
 	}else if (typeData == EST) this->estState.q = newJointPos; this->estTraj.qTraj.push_back(newJointPos);
 }
+
 ScalarVector Limb::getJointPos(dataType const & typeData) const{
 	if (typeData == REF){
 		return this->refState.q;
@@ -298,5 +307,14 @@ ScalarVector Limb::getJointPos(dataType const & typeData) const{
 	}else return this->estState.q;
 }
 
+void Limb::setLimb_res_Jacobian(){
+
+	for (int i = 0; i<3; i++){
+		this->limbResJacobian.segment(i*84, 84) = this->sensors[i].getResidualsJacobian();
+	}
+}
+ScalarVector Limb::getLimb_res_Jacobian() const{
+		return this->limbResJacobian;
+}
 
 
