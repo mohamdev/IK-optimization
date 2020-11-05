@@ -35,12 +35,14 @@
 #include "pinocchio/autodiff/cppad.hpp"
 #include <cppad/cppad.hpp> // the CppAD package
 #include <Eigen/Geometry>
+#include "matplotlibcpp.h"
 #ifndef PINOCCHIO_MODEL_DIR
 #define PINOCCHIO_MODEL_DIR "path_to_the_model_dir"
 #endif
 using namespace CppAD;
 
 using namespace std;
+namespace plt = matplotlibcpp;
 namespace pin = pinocchio;
 
 typedef pin::Model Model;
@@ -61,7 +63,7 @@ void rot2quatAD(ADMatrix const & R, ADVector & Q);
 
 void eigen2vector(ScalarMatrix const& eigenMat, std::vector<std::vector<double>> & returnedVect);
 void eigen2vector(std::vector<ScalarVector> const& eigenMat, std::vector<std::vector<Scalar>> & returnedVect);
-
+void vector2eigen(std::vector<ScalarVector> const& vectorMat, ScalarMatrix & eigenMat);
 //template <typename eigenVect>
 //void x_to_q_dq(ADVector const & Xvel, ADVector & q, ADVector & dq);
 template <typename eigenVect>
@@ -97,7 +99,7 @@ void q_dq_to_x(eigenVect & Xvel, eigenVect const & q, eigenVect const & dq);
 template <typename eigenVect>
 void q_dq_to_x(eigenVect & Xvel, eigenVect const & q, eigenVect const & dq)
 {
-	for(int j = 0; j<q.rows()*2; j++)
+	for(int j = 0; j<q.rows(); j++)
 	{
 		Xvel(j) = q(j);
 		Xvel(j+q.rows()) = dq(j);
@@ -110,11 +112,14 @@ void q_dq_ddq_to_x(eigenVect & Xvel, eigenVect const & q, eigenVect const & dq);
 template <typename eigenVect>
 void q_dq_ddq_to_x(eigenVect & Xacc, eigenVect const & q, eigenVect const & dq, eigenVect const & ddq)
 {
-	for(int j = 0; j<q.rows()*3; j++)
+	for(int j = 0; j<q.rows(); j++)
 	{
 		Xacc(j) = q(j);
 		Xacc(j+q.rows()) = dq(j);
 		Xacc(j+q.rows()*2) = ddq(j);
 	}
 }
+
+void plotData(ScalarMatrix const & Q_estimated, ScalarMatrix const & Q_reference, ScalarMatrix const & estimatedMeasurement, ScalarMatrix const & referenceMeasurement, ScalarMatrix const & sensorMeasurement);
+
 #endif /* UTILS_H_ */

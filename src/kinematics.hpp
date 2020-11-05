@@ -52,6 +52,10 @@ private:
 	Eigen::Matrix3d R; //rotation matrix
 
 public:
+//	std::shared_ptr<ADFun<Scalar>>  posCostFun;
+//	std::shared_ptr<ADFun<Scalar>> gyrCostFun;
+//	std::shared_ptr<ADFun<Scalar>> accCostFun;
+//	std::shared_ptr<ADFun<Scalar>> quatCostFun;
 	ADFun<Scalar> posCostFun;
 	ADFun<Scalar> gyrCostFun;
 	ADFun<Scalar> accCostFun;
@@ -106,7 +110,7 @@ public:
 	Trajectories refTraj;
 	JointStates estState;
 	JointStates refState;
-	std::vector<Sensor> sensors;
+	std::vector<std::shared_ptr<Sensor>> sensors;
 	Model pinModel;
 	Data pinData;
 	ADModel CppADModel;
@@ -153,7 +157,5 @@ public:
 	void setLimb_res_Jacobian();
 	ScalarVector getLimb_res_Jacobian() const;
 };
-
-
 
 #endif /* KINEMATICS_HPP_ */
