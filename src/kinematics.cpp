@@ -15,6 +15,7 @@
 Sensor::Sensor(Model const & model, int const & nb_sensor_var, int const & nb_state_variables, std::string ID){
 	this->nb_meas_var = nb_sensor_var;
 	this->nb_states = nb_state_variables;
+
 //	this->posCostFun = std::make_shared<ADFun<Scalar>>();
 //	this->gyrCostFun = std::make_shared<ADFun<Scalar>>();
 //	this->posCostFun = std::make_shared<ADFun<Scalar>>();
@@ -114,6 +115,7 @@ void Sensor::setPosADFun(ADModel const & pinADModel, ADData & pinADData){
 	        /**Generate AD function and stop recording **/
 	        //this->posCostFun->Dependent(X, res);
 	        ADFun<Scalar> posCost(X, res);
+	        this->gyrCostFunAD = posCost.base2ad();
 	        this->posCostFun = std::move(posCost);
 
 }
@@ -134,6 +136,7 @@ void Sensor::setQuatADFun(ADModel const & pinADModel, ADData & pinADData){
 	        //this->quatCostFun->Dependent(X,res);
 	        /**Generate AD function and stop recording **/
 	        ADFun<Scalar> fkine_quat(X,res);
+	        this->gyrCostFunAD = fkine_quat.base2ad();
 	        this->quatCostFun = std::move(fkine_quat);
 }
 ////
@@ -161,6 +164,7 @@ void Sensor::setGyrADFun(ADModel const & pinADModel, ADData & pinADData){
 	        //this->gyrCostFun->Dependent(X_vel, res);
 	        std::cout << "Made dependent " << std::endl;
 	        ADFun<Scalar> fkine_gyr(X_vel,res);
+			this->gyrCostFunAD = fkine_gyr.base2ad();
 	        this->gyrCostFun = std::move(fkine_gyr);
 }
 //
@@ -187,6 +191,7 @@ void Sensor::setAccADFun(ADModel const & pinADModel, ADData & pinADData){
 	        std::cout << "Made dependent " << std::endl;
 	        /**Generate AD function and stop recording **/
 	        ADFun<Scalar> fkine_acc(X_acc,res);
+	        this->gyrCostFunAD = fkine_acc.base2ad();
 	        this->accCostFun = std::move(fkine_acc);
 }
 //
@@ -410,4 +415,50 @@ ScalarVector Limb::getLimb_res_Jacobian() const{
 		return this->limbResJacobian;
 }
 
+void Limb::setResidualCostFunc(){
+	ADVector X = ADMatrix::Zero(this->nb_states*3,1);
+	ADVector refMeas = ADMatrix::Zero(this->nb_meas, 1);
 
+	Independent(X, refMeas);
+	ADVector sensorsResiduals = ADMatrix::Zero(this->nb_sensors,1); //Contains the residuals of each sensor
+	ADVector q = ADMatrix::Zero(this->nb_states,1);
+	ADVector dq = ADMatrix::Zero(this->nb_states,1);
+	ADVector ddq = ADMatrix::Zero(this->nb_states,1);
+	ADVector X_vel = ADMatrix::Zero(this->nb_states*2,1);
+	ADVector X_acc = ADMatrix::Zero(this->nb_states*3,1);
+
+	x_to_q_dq_ddq<ADVector>(X, q, dq, ddq);
+	q_dq_to_x<ADVector>(X_vel, q, dq);
+	q_dq_ddq_to_x<ADVector>(X_acc, q, dq, ddq);
+
+	for(int i =0; i<this->nb_sensors; i++)
+	{
+
+		ADVector Pos = refMeas.segment(0 + i*(this->nb_meas/this->nb_sensors), 3);
+		ADVector Gyr = refMeas.segment(3 + i*(this->nb_meas/this->nb_sensors), 3);
+	    ADVector Acc = refMeas.segment(6 + i*(this->nb_meas/this->nb_sensors), 3);
+	    ADVector Quat = refMeas.segment(9 + i*(this->nb_meas/this->nb_sensors), 4);
+
+		this->sensors[i]->posCostFunAD.new_dynamic(Pos);
+		this->sensors[i]->gyrCostFunAD.new_dynamic(Gyr);
+		this->sensors[i]->accCostFunAD.new_dynamic(Acc);
+		this->sensors[i]->quatCostFunAD.new_dynamic(Quat);
+
+		sensorsResiduals(i) = (this->sensors[i]->posCostFunAD.Forward(0,q) +
+							 this->sensors[i]->gyrCostFunAD.Forward(0,X_vel) +
+							 this->sensors[i]->accCostFunAD.Forward(0,X_acc) +
+							 this->sensors[i]->quatCostFunAD.Forward(0,q))(0);
+	}
+	ADVector finalResidual(1);
+
+	finalResidual(0) = sensorsResiduals.sum();
+
+	ADFun<Scalar> residualFun(X, finalResidual);
+
+	this->residualCostFunc = std::move(residualFun);
+}
+
+//ScalarVector Limb::getResidual(ScalarVector const & X, ScalarVector const & refMeas) const {
+//	this->residualCostFunc.new_dynamic(refMeas);
+//	return this->residualCostFunc.Forward(0,X);
+//}

@@ -60,6 +60,10 @@ public:
 	ADFun<Scalar> gyrCostFun;
 	ADFun<Scalar> accCostFun;
 	ADFun<Scalar> quatCostFun;
+	ADFun<AD<Scalar>, Scalar> posCostFunAD;
+	ADFun<AD<Scalar>, Scalar> gyrCostFunAD;
+	ADFun<AD<Scalar>, Scalar> accCostFunAD;
+	ADFun<AD<Scalar>, Scalar> quatCostFunAD;
 	ScalarVector jacPos;
 	ScalarVector jacGyr;
 	ScalarVector jacAcc;
@@ -104,6 +108,7 @@ private:
 	ScalarVector refMeas;
 	ScalarVector estMeas;
 public:
+	ADFun<Scalar> residualCostFunc;
 	std::vector<Scalar> t;
 	std::vector<int> timesample;
 	Trajectories estTraj;
@@ -116,6 +121,7 @@ public:
 	ADModel CppADModel;
 	ADData CppADData;
 	ScalarVector limbResJacobian;
+	ScalarVector residualJacobian;
 	int nb_meas;
 	int nb_states;
 	int nb_sensors;
@@ -156,6 +162,9 @@ public:
 
 	void setLimb_res_Jacobian();
 	ScalarVector getLimb_res_Jacobian() const;
+
+	void setResidualCostFunc();
+	ScalarVector getResidual(ScalarVector const & X, ScalarVector const & refMeas) const;
 };
 
 #endif /* KINEMATICS_HPP_ */

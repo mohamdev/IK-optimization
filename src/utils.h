@@ -107,7 +107,7 @@ void q_dq_to_x(eigenVect & Xvel, eigenVect const & q, eigenVect const & dq)
 }
 
 template <typename eigenVect>
-void q_dq_ddq_to_x(eigenVect & Xvel, eigenVect const & q, eigenVect const & dq);
+void q_dq_ddq_to_x(eigenVect & Xvel, eigenVect const & q, eigenVect const & dq, eigenVect const & ddq);
 
 template <typename eigenVect>
 void q_dq_ddq_to_x(eigenVect & Xacc, eigenVect const & q, eigenVect const & dq, eigenVect const & ddq)
