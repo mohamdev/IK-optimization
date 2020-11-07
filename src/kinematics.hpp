@@ -122,6 +122,7 @@ public:
 	ADData CppADData;
 	ScalarVector limbResJacobian;
 	ScalarVector residualJacobian;
+	ScalarVector residual;
 	int nb_meas;
 	int nb_states;
 	int nb_sensors;
@@ -164,7 +165,8 @@ public:
 	ScalarVector getLimb_res_Jacobian() const;
 
 	void setResidualCostFunc();
-	ScalarVector getResidual(ScalarVector const & X, ScalarVector const & refMeas) const;
+	ScalarVector getResidual(ScalarVector const & X, ScalarVector const & refMeas);
+	ScalarVector getResidualJacobian(ScalarVector const & X, ScalarVector const & refMeas);
 };
 
 #endif /* KINEMATICS_HPP_ */

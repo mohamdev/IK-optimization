@@ -458,7 +458,18 @@ void Limb::setResidualCostFunc(){
 	this->residualCostFunc = std::move(residualFun);
 }
 
-//ScalarVector Limb::getResidual(ScalarVector const & X, ScalarVector const & refMeas) const {
-//	this->residualCostFunc.new_dynamic(refMeas);
-//	return this->residualCostFunc.Forward(0,X);
-//}
+ScalarVector Limb::getResidual(ScalarVector const & X, ScalarVector const & refMeas){
+	/*This function takes as input the state vector and the referenceMeasurement, refreshes the residual of the Limb
+	 * and returns it */
+	this->residualCostFunc.new_dynamic(refMeas);
+	this->residual = this->residualCostFunc.Forward(0,X);
+	return this->residual;
+}
+
+ScalarVector Limb::getResidualJacobian(ScalarVector const & X, ScalarVector const & refMeas){
+	this->residualCostFunc.new_dynamic(refMeas);
+	this->residualJacobian = this->residualCostFunc.Jacobian(X);
+	return this->residualJacobian;
+}
+
+
