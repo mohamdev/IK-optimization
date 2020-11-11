@@ -84,8 +84,6 @@ void Polynom::generateRandTraj(double const & dt, double const & duration, int c
 				startPoint = endPoint;
 				endPoint = generatePoint(pointGenerator);
 			}
-
-
 			while(t<tf && trajIndex < traj.cols())
 			{
 				traj(k, trajIndex) = getPolValue(t, startPoint, endPoint, tf);

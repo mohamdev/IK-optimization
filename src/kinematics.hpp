@@ -14,7 +14,7 @@ enum sensorType{
 	POS, GYR, ACC, QUAT//, q, dq, ddq
 };
 enum dataType{
-	EST, REF, MEAS
+	EST, REF, MEAS, ESTeval, REFeval, MEASeval
 };
 
 /* -------------- STRUCT LimbData ----------------*/
@@ -115,7 +115,8 @@ public:
 	Trajectories refTraj;
 	JointStates estState;
 	JointStates refState;
-	std::vector<std::shared_ptr<Sensor>> sensors;
+	//std::vector<std::shared_ptr<Sensor>> sensors;
+	std::vector<shared_ptr<Sensor>> sensors;
 	Model pinModel;
 	Data pinData;
 	ADModel CppADModel;
@@ -134,6 +135,7 @@ public:
 
 
 
+	Limb();
 	Limb(string const & urdf_filename, int const & nb_states, int const & nb_measurements, int const & nb_sensors);
 	~Limb();
 
@@ -165,8 +167,16 @@ public:
 	ScalarVector getLimb_res_Jacobian() const;
 
 	void setResidualCostFunc();
+	void setResidualCostFuncPos();
+	void setResidualCostFuncPosQuat();
 	ScalarVector getResidual(ScalarVector const & X, ScalarVector const & refMeas);
 	ScalarVector getResidualJacobian(ScalarVector const & X, ScalarVector const & refMeas);
+
+	void setJointNumDerivatives(dataType const & typeData);
+	void setJointNumDerivatives();
+
+	ScalarVector getSensorsPos(dataType const & typeData) const;
+	ScalarVector getSensorsPosQuat(dataType const & typeData) const;
 };
 
 #endif /* KINEMATICS_HPP_ */

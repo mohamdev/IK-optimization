@@ -39,8 +39,8 @@ void eigen2vector(std::vector<ScalarVector> const& eigenMat, std::vector<std::ve
 }
 
 void vector2eigen(std::vector<ScalarVector> const& vectorMat, ScalarMatrix & eigenMat){
-	for (int i = 0; i < vectorMat.size() -1 ; i++){
-		for(int j = 0; j<vectorMat[i].rows(); j++){
+	for (unsigned int i = 0; i < vectorMat.size() -1 ; i++){
+		for(unsigned int j = 0; j<vectorMat[i].rows(); j++){
 			eigenMat(j,i) = vectorMat[i](j);
 		}
 	}

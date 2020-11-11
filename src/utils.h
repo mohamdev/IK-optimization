@@ -56,6 +56,7 @@ typedef ADModel::Data ADData;
 typedef Eigen::Matrix<ADScalar,Eigen::Dynamic,1> ADVector;
 typedef Eigen::Matrix<ADScalar,Eigen::Dynamic,Eigen::Dynamic> ADMatrix;
 typedef ADModel::ConfigVectorType ADConfigVectorType;
+typedef ADModel::TangentVectorType ADTangentVectorType;
 
 Eigen::Vector4d rot2quat(Eigen::Matrix3d const & R);
 void rot2quatAD(ADMatrix const & R, ADVector & Q);
