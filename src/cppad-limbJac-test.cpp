@@ -5,23 +5,23 @@
  *      Author: aladinedev2
  */
 
-//
+
 //
 //#include "kinematics.hpp"
 //#include "polynom.h"
 //#include "matplotlibcpp.h"
 //#define dT 0.01
 //namespace plt = matplotlibcpp;
-
+//
 //int main(int argc, char ** argv)
 //{
 //  using namespace pinocchio;
 //
-//	Polynom pol1(5,13);
+//	//Polynom pol1(5,13);
 //	//pol1.setDim(2);
-//	pol1.generateRandTraj(dT, 0.1, 50);
+//	//pol1.generateRandTraj(dT, 0.1, 50);
 //	ScalarMatrix traj;
-//	traj = pol1.getTraj();
+//	traj = readTrajFromCSV(2, "pos");//pol1.getTraj();
 //  const std::string urdf_filename = "/home/aladinedev2/Desktop/Final_URDF/human_arm_dorent.urdf";
 //  int nb_vimu = 3;
 //  int nb_joints = 13;
@@ -46,9 +46,9 @@
 //  for (int i =0; i<traj.cols(); i++){
 //	  std::cout << "i : " << i << std::endl;
 //	  q = traj.col(i);
-//
-//	  for (int j = 0; j<6; j++) q_es(j) = q(j);
-//	  for (int j =6; j<13; j++) q_es(j) = q(j) + 0.06;
+//	  q_es = q;
+////	  for (int j = 0; j<6; j++) q_es(j) = q(j);
+////	  for (int j =6; j<13; j++) q_es(j) = q(j) + 0.06;
 //
 //	  arm.setJointPos(q, REF);
 //	  arm.setJointPos(q_es, EST);
@@ -56,7 +56,7 @@
 //	  arm.refreshSensors(REF);
 //	  arm.refreshSensors(EST);
 //
-//	  arm.setLimb_res_Jacobian();
+//	  //arm.setLimb_res_Jacobian();
 //
 //	  arm.timesample.push_back(i);	  arm.t.push_back(i*dT);
 //	  //arm.refreshAllSensors(EST);
@@ -68,50 +68,12 @@
 //  ScalarMatrix estMeasTraj = ScalarMatrix::Zero(arm.estTraj.measTraj[0].rows(), traj.cols()) ;
 //  ScalarMatrix refMeasTraj = ScalarMatrix::Zero(arm.estTraj.measTraj[0].rows(), traj.cols());
 //
-//  std::cout << "traj size : " << traj.rows() << " ; " << traj.cols() << std::endl;
-//  std::cout << "q_est traj : " << arm.estTraj.qTraj[0].rows() << " ; " << arm.estTraj.qTraj.size() << std::endl;
 //  vector2eigen(arm.estTraj.qTraj, q_est_traj);
 //  vector2eigen(arm.refTraj.qTraj, q_ref_traj);
 //  vector2eigen(arm.estTraj.measTraj, estMeasTraj);
 //  vector2eigen(arm.refTraj.measTraj, refMeasTraj);
 //  plotData(q_est_traj, q_ref_traj, estMeasTraj, refMeasTraj,  estMeasTraj);
-//
-
-
-//  std::vector<std::vector<Scalar>> qtraj;
-//  eigen2vector(arm.refTraj.qTraj, qtraj);
-//
-//  std::vector<std::vector<Scalar>> q_est_traj;
-//  eigen2vector(arm.estTraj.qTraj, q_est_traj);
-//
-//
-//
-//  std::vector<std::vector<Scalar>> measTraj;
-//  eigen2vector(arm.refTraj.measTraj, measTraj);
-//
-//  std::vector<std::vector<Scalar>> est_measTraj;
-//  eigen2vector(arm.estTraj.measTraj, est_measTraj);
-//
-//  plt::subplot(4,1,1);
-//  plt::named_plot("Ref angle q",arm.t,qtraj[6], "g");
-//  plt::named_plot("Est Angle q",arm.t,qtraj[6], "r--");
-//  plt::legend();
-//
-//  plt::subplot(4,1,2);
-//  plt::named_plot("Sensor pos X", arm.t,measTraj[0]);
-//  plt::legend();
-//
-//  plt::subplot(4,1,3);
-//  plt::named_plot("Sensor pos Y", arm.t,measTraj[1]);
-//  plt::legend();
-//
-//  plt::subplot(4,1,4);
-//  plt::named_plot("Sensor pos Z", arm.t,measTraj[2]);
-//  plt::legend();
-//
-//  plt::show();
-//
 //  cout << "finish" << endl;
-
+//
 // return 0;
 //}

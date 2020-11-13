@@ -40,8 +40,10 @@ int main(
    // Note: The following choices are only examples, they might not be
    //       suitable for your optimization problem.
    app->Options()->SetNumericValue("tol", 1e-7);
-   app->Options()->SetIntegerValue("print_level", 0);
+   //app->Options()->SetNumericValue("max_iter", 20);
+   //app->Options()->SetIntegerValue("print_level", 1);
    app->Options()->SetStringValue("mu_strategy", "adaptive");
+   app->Options()->SetIntegerValue("max_iter", 50);
 //   app->Options()->SetStringValue("output_file", "ipopt.out");
    app->Options()->SetStringValue("hessian_approximation", "limited-memory");
    app->Options()->SetStringValue("derivative_test", "first-order");
@@ -58,10 +60,9 @@ int main(
       return (int) status;
    }
 
-
    std::vector<Scalar> t;
    std::vector<Scalar> refTraj;
-   for(int i = 0;  i<mynlp->pol.getTraj().cols()-1; i++)
+   for(int i = 0;  i<mynlp->pol.getTraj().cols(); i++)
    {
 	   std::cout << (((double)i)/((double)mynlp->pol.getTraj().cols()))*100.0<< " pourcents" << std::endl;
 	   status = app->OptimizeTNLP(mynlp);
@@ -77,21 +78,21 @@ int main(
    // Ask Ipopt to solve the problem
    ScalarMatrix q_est_traj = ScalarMatrix::Zero(mynlp->limb.estTraj.qTraj[0].rows(), mynlp->limb.estTraj.qTraj.size());
    ScalarMatrix q_ref_traj = ScalarMatrix::Zero(mynlp->limb.estTraj.qTraj[0].rows(), mynlp->limb.estTraj.qTraj.size());
-   ScalarMatrix estMeasTraj = ScalarMatrix::Zero(mynlp->limb.estTraj.measTraj[0].rows(), mynlp->pol.getTraj().cols()-1) ;
-   ScalarMatrix refMeasTraj = ScalarMatrix::Zero(mynlp->limb.estTraj.measTraj[0].rows(), mynlp->pol.getTraj().cols()-1);
+   ScalarMatrix estMeasTraj = ScalarMatrix::Zero(mynlp->limb.estTraj.measTraj[0].rows(), mynlp->pol.getTraj().cols()) ;
+   ScalarMatrix refMeasTraj = ScalarMatrix::Zero(mynlp->limb.estTraj.measTraj[0].rows(), mynlp->pol.getTraj().cols());
 
    vector2eigen(mynlp->limb.estTraj.qTraj, q_est_traj);
    vector2eigen(mynlp->limb.refTraj.qTraj, q_ref_traj);
    vector2eigen(mynlp->limb.estTraj.measTraj, estMeasTraj);
    vector2eigen(mynlp->limb.refTraj.measTraj, refMeasTraj);
    plotData(q_est_traj, q_ref_traj, estMeasTraj, refMeasTraj,  estMeasTraj);
-   // As the SmartPtrs go out of scope, the reference count
-   // will be decremented and the objects will automatically
-   // be deleted.
+//    As the SmartPtrs go out of scope, the reference count
+//    will be decremented and the objects will automatically
+//    be deleted.
 
    return (int) status;
 }
-// [MAIN]
+//// [MAIN]
 
 
 

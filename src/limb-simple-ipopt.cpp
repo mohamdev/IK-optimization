@@ -19,15 +19,15 @@ using namespace Ipopt;
 limb_NLP::limb_NLP(string const & urdf_filename, int const & nb_states, int const & nb_measurements, int const & nb_sensors){
 
 	//Generate Polynomial Reference Trajectory
-	this->pol = Polynom(5,13);
-	this->pol.generateRandTraj(Te, 1, 50);
+	this->pol.setTraj(readTrajFromCSV(2, "pos"));
+	//this->pol.generateRandTraj(Te, 0.1, 10);
 	this->refTraj = this->pol.getTraj();
 	//Generate Limb and ADD THE SENSORS
 	this->limb = Limb(urdf_filename, nb_states, nb_measurements, nb_sensors);
     this->limb.addSensor(13, "IMU1_link");
     this->limb.addSensor(13, "IMU2_link");
     this->limb.addSensor(13, "IMU3_link");
-    this->limb.setResidualCostFunc();
+    this->limb.setResidualCostFuncPosQuat();
 	this->X_es = ScalarMatrix::Zero(39,1);
 	this->counter = 0;
 	ScalarVector q_init = this->pol.getTraj().col(0).segment(6,7);
@@ -182,8 +182,9 @@ bool limb_NLP::eval_f(
 //	    std::cout << "refMeas : " << this->limb.getMeas(REF).transpose() << std::endl;
 //	    std::cout << "estMeas : " << this->limb.getMeas(EST).transpose() << std::endl;
 	//q_dq_ddq_to_x<ScalarVector>(this->X_es, this->limb.estState.q, this->limb.estState.dq, this->limb.estState.ddq);
+	   	//std::cout << "q_es : " << q_es.transpose() << std::endl;
 	//obj_value = (this->limb.getResidual(this->X_es, this->limb.getSensorsPos(EST)))(0);
-	   obj_value = (this->limb.getResidual(q_es, this->limb.getSensorsPos(REF)))(0);
+	   obj_value = (this->limb.getResidual(q_es, this->limb.getSensorsPosQuat(REF)))(0);
 //	std::cout << "residual : " << obj_value << std::endl;
 			//std::pow(0.29*std::sin(x[0]) - 0.29*std::sin(1.5),2) + std::pow(-0.29*std::cos(x[0]) - (-0.29*std::cos(1.5)),2);
 	return true;
@@ -230,7 +231,7 @@ bool limb_NLP::eval_grad_f(
    //this->res_q_jac = this->limb.getResidualJacobian(this->X_es, this->limb.getMeas(REF));
    	ScalarVector newJac = ScalarMatrix::Zero(13,1);
    //this->res_q_jac = this->limb.getResidualJacobian(this->X_es, this->limb.getMeas(REF));
-   	newJac = this->limb.getResidualJacobian(q_es, this->limb.getSensorsPos(REF));
+   	newJac = this->limb.getResidualJacobian(q_es, this->limb.getSensorsPosQuat(REF));
 //   std::cout << "res_q_jac AFTER  : " << this->res_q_jac.transpose() << std::endl;
    for (int i =0; i<7; i++){
 	   grad_f[i] = newJac(i+6);
@@ -347,7 +348,7 @@ void limb_NLP::finalize_solution(
 	this->limb.refreshSensors(REF);
 	this->limb.refreshSensors(EST);
 
-	q_dq_ddq_to_x<ScalarVector>(this->X_es, this->limb.estState.q, this->limb.estState.dq, this->limb.estState.ddq);
+	//q_dq_ddq_to_x<ScalarVector>(this->X_es, this->limb.estState.q, this->limb.estState.dq, this->limb.estState.ddq);
    for (int i = 0; i<n; i++)
    {
 	    this->initPoint(i) = x[i];
@@ -363,16 +364,16 @@ void limb_NLP::finalize_solution(
 //
 //
 //
-//   	   std::cout << "Ref dq : " << this->limb.refState.q.transpose() << std::endl;
-//	   // For this example, we write the solution to the console
-//	   std::cout << std::endl << std::endl << "Solution of the primal variables, x" << std::endl;
-//	   for( Index i = 0; i < n; i++ )
-//	   {
-//	      std::cout << "x[" << i << "] = " << x[i] << std::endl;
-//	   }
-//	   std::cout << std::endl << std::endl << "Solution of the bound multipliers, z_L and z_U" << std::endl;
-//	   std::cout << std::endl << std::endl << "Objective value" << std::endl;
-//	   std::cout << "f(x*) = " << obj_value << std::endl;
+   	   std::cout << "Ref dq : " << this->limb.refState.q.transpose() << std::endl;
+	   // For this example, we write the solution to the console
+	   std::cout << std::endl << std::endl << "Solution of the primal variables, x" << std::endl;
+	   for( Index i = 0; i < n; i++ )
+	   {
+	      std::cout << "x[" << i << "] = " << x[i] << std::endl;
+	   }
+	   std::cout << std::endl << std::endl << "Solution of the bound multipliers, z_L and z_U" << std::endl;
+	   std::cout << std::endl << std::endl << "Objective value" << std::endl;
+	   std::cout << "f(x*) = " << obj_value << std::endl;
 	   this->residuals.push_back(obj_value);
 }
 

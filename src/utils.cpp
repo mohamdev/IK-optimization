@@ -10,6 +10,43 @@
 
 #include "utils.h"
 
+void rotMatToQuaternion(ADMatrix const & R, ADVector & Quat)
+{
+    ADScalar tr; tr = R(0,0) + R(1,1) + R(2,2);
+    ADScalar S1; S1 = 0.5 / CppAD::sqrt(tr+1.0);
+    ADScalar S2; S2 = 2.0 * CppAD::sqrt(1.0 + R(0,0) - R(1,1) - R(2,2));
+    ADScalar S3; S3 = 2.0 * CppAD::sqrt(1.0 + R(1,1) - R(0,0) - R(2,2));
+    ADScalar S4; S4 = 2.0 * CppAD::sqrt(1.0 + R(2,2) - R(0,0) - R(1,1));
+    ADScalar zero(0);
+
+    //w
+    Quat(0) = CondExpOp(CompareLt,zero,tr,0.25 / S1,
+                       CondExpOp(CompareLt, R(1,1), R(0,0),
+                                CondExpOp(CompareLt, R(2,2), R(0,0), (R(2,1) - R(1,2)) / S2,
+                                    CondExpOp(CompareLt, R(2,2),R(1,1), (R(0,2) - R(2,0)) / S3, (R(1,0) - R(0,1)) / S4)),
+                                        CondExpOp(CompareLt, R(2,2),R(1,1), (R(0,2) - R(2,0)) / S3, (R(1,0) - R(0,1)) / S4)));
+
+    //x
+    Quat(1) = CondExpOp(CompareLt,zero,tr,(R(2,1) - R(1,2))*S1,
+                           CondExpOp(CompareLt, R(1,1), R(0,0),
+                                    CondExpOp(CompareLt, R(2,2), R(0,0), 0.25*S2,
+                                        CondExpOp(CompareLt, R(2,2),R(1,1), (R(0,1)+R(1,0))/S3, (R(0,2)+R(2,0))/S4)),
+                                            CondExpOp(CompareLt, R(2,2),R(1,1), (R(0,1)+R(1,0))/S3, (R(0,2)+R(2,0))/S4)));
+    //y
+    Quat(2) = CondExpOp(CompareLt,zero,tr,(R(0,2) - R(2,0))*S1,
+                           CondExpOp(CompareLt, R(1,1), R(0,0),
+                                    CondExpOp(CompareLt, R(2,2), R(0,0), (R(0,1) + R(1,0)) / S2,
+                                        CondExpOp(CompareLt, R(2,2),R(1,1), 0.25 * S3, (R(1,2) + R(2,1)) / S4)),
+                                            CondExpOp(CompareLt, R(2,2),R(1,1), 0.25 * S3, (R(1,2) + R(2,1)) / S4)));
+    //z
+    Quat(3) = CondExpOp(CompareLt,zero,tr,(R(1,0) - R(0,1))*S1,
+                           CondExpOp(CompareLt, R(1,1), R(0,0),
+                                    CondExpOp(CompareLt, R(2,2), R(0,0), (R(0,2) + R(2,0)) / S2,
+                                        CondExpOp(CompareLt, R(2,2),R(1,1), (R(1,2) + R(2,1)) / S3, 0.25 * S4)),
+                                            CondExpOp(CompareLt, R(2,2),R(1,1), (R(1,2) + R(2,1)) / S3, 0.25 * S4)));
+
+}
+
 void eigen2vector(ScalarMatrix const& eigenMat, std::vector<std::vector<double>> & returnedVect)
 {
 	/**This function converts an eigen scalar matrix to a std::vector<vector<double>> **/
@@ -58,6 +95,7 @@ void vector2eigen(std::vector<ScalarVector> const& vectorMat, ScalarMatrix & eig
 //    //return X;
 //}
 
+
 Eigen::Vector4d rot2quat(Eigen::Matrix3d const & R)
 {
 	/*
@@ -67,16 +105,14 @@ Eigen::Vector4d rot2quat(Eigen::Matrix3d const & R)
 	 * 	R = 3*3 Rotation matrix
 	 *
 	 * */
-	Eigen::Vector4d quat = Eigen::MatrixXd::Zero(4,1);
+	Eigen::Vector4d Q = Eigen::MatrixXd::Zero(4,1);
     Scalar Tr(R(0,0) + R(1,1) + R(2,2));
-    Scalar S = sqrt(Tr+1)*2;
-    quat(0) = 0.25 * S;
-    quat(1) = (R(2,1) - R(1,2))/S;
-    quat(2) = (R(0,2) - R(2,0))/S;
-    quat(3) = (R(1,0) - R(0,1))/S;
+    Scalar S = sqrt(Tr+1.0)*2.0;
+    Q(0) = 0.25 * S;
+    Q(1) = (R(2,1) - R(1,2))/S;
+    Q(2) = (R(0,2) - R(2,0))/S;
+    Q(3) = (R(1,0) - R(0,1))/S;
 
-
-    /**
         if (Tr>0)
     {
         Scalar S = sqrt(Tr+1)*2;
@@ -107,9 +143,7 @@ Eigen::Vector4d rot2quat(Eigen::Matrix3d const & R)
             Q(3) = 0.25*S;
     }
 
-    **/
-
-    return quat;
+    return Q;
 }
 
 void rot2quatAD(ADMatrix const & R, ADVector & Q)
@@ -157,6 +191,204 @@ void rot2quatAD(ADMatrix const & R, ADVector & Q)
 //            Q(3) = 0.25*S;
 //    }
 
+}
+
+ScalarMatrix read_data(std::string const & filePath, std::string const & dataType){
+        // File pointer
+    fstream fin;
+    int nbrows(0);
+    ScalarMatrix data_matrix;
+    if (dataType == "q"){
+        data_matrix.resize(13,1122);
+        nbrows = 13;
+    }else if (dataType == "measurement"){
+        data_matrix.resize(39,1122);
+        nbrows = 39;
+    }else if (dataType == "SimulatedData"){
+        data_matrix.resize(1122, 300);
+        nbrows = 1122;
+    }
+    // Open an existing file
+    fin.open(filePath, ios::in);
+
+    // Read the Data from the file
+    // as String Vector
+    std::vector<string> row;
+    string line, word;
+
+    int j = 0;
+    for (j = 0; j<nbrows; j++){
+        unsigned int i =0;
+
+        row.clear();
+
+        // read an entire row and
+        // store it in a string variable 'line'
+        getline(fin, line);
+
+        // used for breaking words
+        stringstream s(line);
+
+        // read every column data of a row and
+        // store it in a string variable, 'word'
+        while (getline(s, word, ',')) {
+
+            // add all the column data
+            // of a row to a vector
+            row.push_back(word);
+        }
+
+        ScalarVector q_data(row.size());
+        for (i = 0; i<row.size(); i++){
+            q_data(i) = std::stod(row[i]);
+        }
+        data_matrix.row(j) = q_data.transpose();
+    }
+    return data_matrix;
+}
+
+std::fstream& GotoLine(std::fstream& file, unsigned int const & num){
+    //std::fstream file(filePath);
+    file.seekg(std::ios::beg);
+    for(unsigned int i=0; i < num - 1; ++i){
+        file.ignore(std::numeric_limits<std::streamsize>::max(),'\n');
+    }
+    return file;
+}
+
+ScalarMatrix readTrajFromCSV(int const & trajIndex, std::string const & typeTraj)
+{
+    // File pointer
+    ScalarMatrix data_matrix(13,1121);
+
+    if (typeTraj == "pos")
+    {
+        for(int qIndex = 0; qIndex<13; qIndex++)
+        {
+            fstream fin;
+            std::string filePath("./newData/q" + std::to_string(qIndex + 1) + ".csv");
+            // Open an existing file
+            fin.open(filePath, ios::in);
+            GotoLine(fin,trajIndex);
+
+            // Read the Data from the file
+            // as String Vector
+            std::vector<string> row;
+            string line, word;
+            row.clear();
+
+            // read an entire row and
+            // store it in a string variable 'line'
+            getline(fin, line);
+
+            // used for breaking words
+            stringstream s(line);
+
+            // used for breaking words
+            // read every column data of a row and
+            // store it in a string variable, 'word'
+            while (getline(s, word, ','))
+            {
+                // add all the column data
+                // of a row to a vector
+                row.push_back(word);
+            }
+
+            ScalarVector q_data(row.size());
+            for (unsigned int i = 0; i<row.size(); i++)
+            {
+                q_data(i) = std::stod(row[i]);
+            }
+
+            data_matrix.row(qIndex) = q_data.transpose();
+        }
+
+    } else if (typeTraj == "vel")
+    {
+        for(int qIndex = 0; qIndex<13; qIndex++)
+        {
+            fstream fin;
+            std::string filePath("./newData/dq" + std::to_string(qIndex + 1) + ".csv");
+            // Open an existing file
+            fin.open(filePath, ios::in);
+            GotoLine(fin,trajIndex);
+
+            // Read the Data from the file
+            // as String Vector
+            std::vector<string> row;
+            string line, word;
+            row.clear();
+
+            // read an entire row and
+            // store it in a string variable 'line'
+            getline(fin, line);
+
+            // used for breaking words
+            stringstream s(line);
+
+            // used for breaking words
+            // read every column data of a row and
+//             store it in a string variable, 'word'
+            while (getline(s, word, ','))
+            {
+            //getline(s, word, ',');
+//                // add all the column data
+//                // of a row to a vector
+                row.push_back(word);
+            }
+
+            ScalarVector q_data(row.size());
+            for (unsigned int i = 0; i<row.size(); i++)
+            {
+                q_data(i) = std::stod(row[i]);
+            }
+
+            data_matrix.row(qIndex) = q_data.transpose();
+        }
+
+    } else if (typeTraj == "acc")
+    {
+        for(int qIndex = 0; qIndex<13; qIndex++)
+            {
+                fstream fin;
+                std::string filePath("./newData/ddq" + std::to_string(qIndex + 1) + ".csv");
+                // Open an existing file
+                fin.open(filePath, ios::in);
+                GotoLine(fin,trajIndex);
+
+                // Read the Data from the file
+                // as String Vector
+                std::vector<string> row;
+                string line, word;
+                row.clear();
+
+                // read an entire row and
+                // store it in a string variable 'line'
+                getline(fin, line);
+
+                // used for breaking words
+                stringstream s(line);
+
+                // used for breaking words
+                // read every column data of a row and
+                // store it in a string variable, 'word'
+            while (getline(s, word, ','))
+            {
+//            getline(s, word, ',');
+//                // add all the column data
+//                // of a row to a vector
+                row.push_back(word);
+            }
+
+                ScalarVector q_data(row.size());
+                for (unsigned int i = 0; i<row.size(); i++)
+                {
+                    q_data(i) = std::stod(row[i]);
+                }
+                data_matrix.row(qIndex) = q_data.transpose();
+            }
+    }
+    return data_matrix;
 }
 
 /**estimatedData refers to estimated angles and q_data refers to reference angles**/

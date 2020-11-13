@@ -28,6 +28,7 @@
 #include "pinocchio/parsers/urdf.hpp"
 #include "pinocchio/algorithm/joint-configuration.hpp"
 #include "pinocchio/algorithm/kinematics.hpp"
+#include "pinocchio/math/quaternion.hpp"
 //#include "pinocchio/codegen/cppadcg.hpp"
 //#include <urdf_parser/urdf_parser.h>
 #include <pinocchio/algorithm/frames.hpp>
@@ -58,6 +59,7 @@ typedef Eigen::Matrix<ADScalar,Eigen::Dynamic,Eigen::Dynamic> ADMatrix;
 typedef ADModel::ConfigVectorType ADConfigVectorType;
 typedef ADModel::TangentVectorType ADTangentVectorType;
 
+void rotMatToQuaternion(ADMatrix const & R, ADVector & Quat);
 Eigen::Vector4d rot2quat(Eigen::Matrix3d const & R);
 void rot2quatAD(ADMatrix const & R, ADVector & Q);
 //void getStateVectAD_vel(ADVector & X, ADVector const & q, ADVector const & dq);
@@ -121,6 +123,26 @@ void q_dq_ddq_to_x(eigenVect & Xacc, eigenVect const & q, eigenVect const & dq, 
 	}
 }
 
+template<typename Base>
+Eigen::Matrix<Base,Eigen::Dynamic,1> rot2quat_tmpl(Eigen::Matrix<Base,Eigen::Dynamic,Eigen::Dynamic> const & m);
+
+template<typename Base>
+Eigen::Matrix<Base,Eigen::Dynamic,1> rot2quat_tmpl(Eigen::Matrix<Base,Eigen::Dynamic,Eigen::Dynamic> const & m){
+    Base qw = CppAD::sqrt(1.0+m(0,0)+m(1,1)+m(2,2))/2.0;
+    Base qx = (m(2,1) - m(1,2))/( 4.0 *qw);
+    Base qy = (m(0,2) - m(2,0))/( 4.0 *qw);
+    Base qz = (m(1,0) - m(0,1))/( 4.0 *qw);
+    Eigen::Matrix<Base,Eigen::Dynamic,1> quat(4,1);
+    quat(0) = qw;
+    quat(1) = qx;
+    quat(2) = qy;
+    quat(3) = qz;
+    return quat;
+};
+
 void plotData(ScalarMatrix const & Q_estimated, ScalarMatrix const & Q_reference, ScalarMatrix const & estimatedMeasurement, ScalarMatrix const & referenceMeasurement, ScalarMatrix const & sensorMeasurement);
 
+ScalarMatrix read_data(std::string const & filePath, std::string const & dataType);
+std::fstream& GotoLine(std::fstream& file, unsigned int const & num);
+ScalarMatrix readTrajFromCSV(int const & trajIndex, std::string const & typeTraj);
 #endif /* UTILS_H_ */
