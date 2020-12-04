@@ -56,6 +56,10 @@ public:
 //	std::shared_ptr<ADFun<Scalar>> gyrCostFun;
 //	std::shared_ptr<ADFun<Scalar>> accCostFun;
 //	std::shared_ptr<ADFun<Scalar>> quatCostFun;
+	ADFun<Scalar> posFun;
+	ADFun<Scalar> gyrFun;
+	ADFun<Scalar> accFun;
+	ADFun<Scalar> quatFun;
 	ADFun<Scalar> posCostFun;
 	ADFun<Scalar> gyrCostFun;
 	ADFun<Scalar> accCostFun;
@@ -82,9 +86,13 @@ public:
 	void setMeas(Model const & pinModel, Data & pinData, ScalarVector const & q, ScalarVector const & dq);
 	void setRefMeas(ScalarVector const & newValue);
 	void setPosADFun(ADModel const & pinADModel, ADData & pinADData);
+	void setPosFun(ADModel const & pinADModel, ADData & pinADData);
 	void setGyrADFun(ADModel const & pinADModel, ADData & pinADData);
+	void setGyrFun(ADModel const & pinADModel, ADData & pinADData);
 	void setAccADFun(ADModel const & pinADModel, ADData & pinADData);
+	void setAccFun(ADModel const & pinADModel, ADData & pinADData);
 	void setQuatADFun(ADModel const & pinADModel, ADData & pinADData);
+	void setQuatFun(ADModel const & pinADModel, ADData & pinADData);
 	void setADFuns(ADModel const & pinADModel, ADData & pinADData);
 
 	ScalarMatrix getSensorJacobian(ADModel const & pinADModel, ADData & pinADData) const;
@@ -153,10 +161,10 @@ public:
 	void setJointPos(ScalarVector const & newJointPos, dataType const & typeData);
 	ScalarVector getJointPos(dataType const & typeData) const;
 
-	void setJointVel(dataType const & typeData);
+	void setJointVel(ScalarVector const & newJointPos, dataType const & typeData);
 	ScalarVector getJointVel(dataType const & typeData) const;
 
-	void setJointAcc(dataType const & typeData);
+	void setJointAcc(ScalarVector const & newJointPos, dataType const & typeData);
 	ScalarVector getJointAcc(dataType const & typeData) const;
 
 	void setJointPosVelAcc(dataType const & typeData, ScalarVector const & q, ScalarVector const & dq, ScalarVector const & ddq);
@@ -169,14 +177,20 @@ public:
 	void setResidualCostFunc();
 	void setResidualCostFuncPos();
 	void setResidualCostFuncPosQuat();
+	void setResidualCostFuncPosQuatGyr();
+	void setResidualCostFuncPosQuatAcc();
+	void setResidualCostFuncPosQuatQvel();
 	ScalarVector getResidual(ScalarVector const & X, ScalarVector const & refMeas);
 	ScalarVector getResidualJacobian(ScalarVector const & X, ScalarVector const & refMeas);
 
 	void setJointNumDerivatives(dataType const & typeData);
+	void setJointNumDerivatives(ScalarVector const & q_es, dataType const & typeData);
 	void setJointNumDerivatives();
 
 	ScalarVector getSensorsPos(dataType const & typeData) const;
 	ScalarVector getSensorsPosQuat(dataType const & typeData) const;
+	ScalarVector getSensorsPosQuatGyr(dataType const & typeData) const;
+	ScalarVector getSensorsPosQuatAcc(dataType const & typeData) const;
 };
 
 #endif /* KINEMATICS_HPP_ */

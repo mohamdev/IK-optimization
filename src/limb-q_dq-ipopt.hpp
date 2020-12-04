@@ -1,12 +1,12 @@
 /*
- * limb-simple-ipopt.hpp
+ * limb-q_dq-ipopt.hpp
  *
- *  Created on: 7 Nov 2020
+ *  Created on: 27 Nov 2020
  *      Author: aladinedev2
  */
 
-#ifndef LIMB_SIMPLE_IPOPT_HPP_
-#define LIMB_SIMPLE_IPOPT_HPP_
+#ifndef LIMB_Q_DQ_IPOPT_HPP_
+#define LIMB_Q_DQ_IPOPT_HPP_
 
 #include "IpTNLP.hpp"
 
@@ -26,12 +26,12 @@ typedef Eigen::Matrix<Scalar,Eigen::Dynamic,1> ScalarVector;
 
 using namespace Ipopt;
 
-class limb_NLP: public Ipopt::TNLP
+class limb_q_dq_NLP: public Ipopt::TNLP
 {
 public:
-	limb_NLP(string const & urdf_filename, int const & nb_states, int const & nb_measurements, int const & nb_sensors);
-	virtual ~limb_NLP();
-   void setInitPoint(ScalarVector const & q_est);
+	limb_q_dq_NLP(string const & urdf_filename, int const & nb_states, int const & nb_measurements, int const & nb_sensors);
+	virtual ~limb_q_dq_NLP();
+   void setInitPoint(ScalarVector const & q_est, ScalarVector const & dq_est);
    std::vector<ScalarVector> getEvalTrajectory();
 	   virtual bool get_nlp_info(
 	      Index&          n,
@@ -139,15 +139,15 @@ private:
     *  knowing. (See Scott Meyers book, "Effective C++")
     */
    //@{
-   limb_NLP(
-      const limb_NLP&
+   limb_q_dq_NLP(
+      const limb_q_dq_NLP&
    );
 
-   limb_NLP& operator=(
-      const limb_NLP&
+   limb_q_dq_NLP& operator=(
+      const limb_q_dq_NLP&
    );
 };
 
 
 
-#endif /* LIMB_SIMPLE_IPOPT_HPP_ */
+#endif /* LIMB_Q_DQ_IPOPT_HPP_ */

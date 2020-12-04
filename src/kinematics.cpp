@@ -10,7 +10,7 @@
 #include "pinocchio/algorithm/joint-configuration.hpp"
 #include "pinocchio/algorithm/kinematics.hpp"
 #include <iostream>
-#define Te 0.01
+//#define Te 0.01
 
 
 
@@ -113,7 +113,7 @@ void Sensor::setMeas(Model const & pinModel, Data & pinData, JointStates const &
 	    this->refMeas.head(3) = pinData.oMf[this->ID].translation(); //Position
 	    this->refMeas.segment(3,3) = getFrameVelocity(pinModel, pinData, this->ID).angular(); //Velocity
 	    this->R = pinData.oMf[this->ID].rotation(); //Rotation
-	    this->refMeas.segment(6,3) = getFrameAcceleration(pinModel, pinData, this->ID).angular() + this->R.transpose()*this->g; //Acceleration
+	    this->refMeas.segment(6,3) = getFrameAcceleration(pinModel, pinData, this->ID).linear() + this->R.transpose()*this->g; //Acceleration
 	    this->refMeas.tail(4) = rot2quat_tmpl<Scalar>(R);
 	}else if(dataLimb.typeDat == EST || dataLimb.typeDat == ESTeval){
 	    pinocchio::forwardKinematics(pinModel, pinData, dataLimb.q, dataLimb.dq, dataLimb.ddq);
@@ -121,7 +121,7 @@ void Sensor::setMeas(Model const & pinModel, Data & pinData, JointStates const &
 	    this->meas.head(3) = pinData.oMf[this->ID].translation(); //Position
 	    this->meas.segment(3,3) = getFrameVelocity(pinModel, pinData, this->ID).angular(); //Velocity
 	    this->R = pinData.oMf[this->ID].rotation(); //Rotation
-	    this->meas.segment(6,3) = getFrameAcceleration(pinModel, pinData, this->ID).angular() + this->R.transpose()*this->g; //Acceleration
+	    this->meas.segment(6,3) = getFrameAcceleration(pinModel, pinData, this->ID).linear() + this->R.transpose()*this->g; //Acceleration
 	    this->meas.tail(4) = rot2quat_tmpl<Scalar>(R);
 	}else std::cout << "dataLimb typeDat not defined" << std::endl;
 
@@ -133,7 +133,7 @@ void Sensor::setMeas(Model const & pinModel, Data & pinData, ScalarVector const 
     this->meas.head(3) = pinData.oMf[this->ID].translation(); //Position
     this->meas.segment(3,3) = getFrameVelocity(pinModel, pinData, this->ID).angular(); //Velocity
     this->R = pinData.oMf[this->ID].rotation(); //Rotation
-    this->meas.segment(6,3) = getFrameAcceleration(pinModel, pinData, this->ID).angular() + this->R.transpose()*this->g; //Acceleration
+    this->meas.segment(6,3) = getFrameAcceleration(pinModel, pinData, this->ID).linear() + this->R.transpose()*this->g; //Acceleration
     this->meas.tail(4) = rot2quat(R); //Quaternion
 }
 
@@ -147,26 +147,48 @@ int Sensor::getNbMeasVar(){
 
 void Sensor::setPosADFun(ADModel const & pinADModel, ADData & pinADData){
 	        /**Set an AD configuration ad_q **/
-
-			ADConfigVectorType X = randomConfiguration(pinADModel);
-			//ADConfigVectorType & X = ad_q;
+		ADVector X_vel = ADMatrix::Zero(13*3,1);
+		X_vel.head(13) = randomConfiguration(pinADModel);
+		X_vel.segment(13, 13)= ADTangentVectorType::Random(13);
+		X_vel.tail(13)= ADTangentVectorType::Random(13);
+;
 	        ADVector refPos = ADMatrix::Zero(3,1);
 	        int ID = this->ID;
-	        CppAD::Independent(X, refPos);//, refPos);
-
-	        pin::forwardKinematics(pinADModel, pinADData, X);
+	        CppAD::Independent(X_vel, refPos);//, refPos);
+	        ADVector q = X_vel.head(13);
+	        pin::forwardKinematics(pinADModel, pinADData, q);
 	        pin::updateFramePlacements(pinADModel, pinADData);
 	        ADVector pos(3); pos = pinADData.oMf[ID].translation();
 	        ADVector res(1);
 	        res(0) = (pos - refPos).squaredNorm();
 	        /**Generate AD function and stop recording **/
 	        //this->posCostFun->Dependent(X, res);
-	        ADFun<Scalar> posCost(X, res);
+	        ADFun<Scalar> posCost(X_vel, res);
 	        this->posCostFunAD = posCost.base2ad();
 	        this->posCostFun = std::move(posCost);
 
 }
 
+void Sensor::setPosFun(ADModel const & pinADModel, ADData & pinADData){
+	        /**Set an AD configuration ad_q **/
+		ADVector X_vel = ADMatrix::Zero(13*3,1);
+		X_vel.head(13) = randomConfiguration(pinADModel);
+		X_vel.segment(13, 13)= ADTangentVectorType::Random(13);
+		X_vel.tail(13)= ADTangentVectorType::Random(13);
+;
+	        ADVector refPos = ADMatrix::Zero(3,1);
+	        int ID = this->ID;
+	        CppAD::Independent(X_vel, refPos);//, refPos);
+	        ADVector q = X_vel.head(13);
+	        pin::forwardKinematics(pinADModel, pinADData, q);
+	        pin::updateFramePlacements(pinADModel, pinADData);
+	        ADVector pos(3); pos = pinADData.oMf[ID].translation();
+	        /**Generate AD function and stop recording **/
+	        //this->posCostFun->Dependent(X, res);
+	        ADFun<Scalar> posCost(X_vel, pos);
+	        this->posFun = std::move(posCost);
+
+}
 //void Sensor::setQuatADFun(ADModel const & pinADModel, ADData & pinADData){
 //	        /**Set an AD configuration ad_q **/
 //			ADConfigVectorType X = randomConfiguration(pinADModel);
@@ -196,14 +218,17 @@ void Sensor::setPosADFun(ADModel const & pinADModel, ADData & pinADData){
 //}
 void Sensor::setQuatADFun(ADModel const & pinADModel, ADData & pinADData){
 	        /**Set an AD configuration ad_q **/
-			ADConfigVectorType X = randomConfiguration(pinADModel);
+			ADVector X_vel = ADMatrix::Zero(13*3,1);
+			X_vel.head(13) = randomConfiguration(pinADModel);
+			X_vel.segment(13, 13)= ADTangentVectorType::Random(13);
+			X_vel.tail(13)= ADTangentVectorType::Random(13);
 
 			//ADConfigVectorType & X = ad_q;
 			int ID = this->ID;
 			ADVector refQuat = ADMatrix::Zero(4,1);
-	        Independent(X, refQuat);
-
-	        pin::forwardKinematics(pinADModel, pinADData, X);
+	        Independent(X_vel, refQuat);
+	        ADVector q = X_vel.head(13);
+	        pin::forwardKinematics(pinADModel, pinADData, q);
 	        pin::updateFramePlacements(pinADModel, pinADData);
 	        ADMatrix R = ADMatrix::Zero(3,3); R = pinADData.oMf[ID].rotation();
 	        ADVector quat(4); //rot2quatAD(R,quat);
@@ -212,28 +237,53 @@ void Sensor::setQuatADFun(ADModel const & pinADModel, ADData & pinADData){
 	        res(0) = (quat - refQuat).squaredNorm();
 	        //this->quatCostFun->Dependent(X,res);
 	        /**Generate AD function and stop recording **/
-	        ADFun<Scalar> fkine_quat(X,res);
+	        ADFun<Scalar> fkine_quat(X_vel,res);
 	        this->quatCostFunAD = fkine_quat.base2ad();
 	        this->quatCostFun = std::move(fkine_quat);
 }
+
+void Sensor::setQuatFun(ADModel const & pinADModel, ADData & pinADData){
+	        /**Set an AD configuration ad_q **/
+			ADVector X_vel = ADMatrix::Zero(13*3,1);
+			X_vel.head(13) = randomConfiguration(pinADModel);
+			X_vel.segment(13, 13)= ADTangentVectorType::Random(13);
+			X_vel.tail(13)= ADTangentVectorType::Random(13);
+
+			//ADConfigVectorType & X = ad_q;
+			int ID = this->ID;
+			ADVector refQuat = ADMatrix::Zero(4,1);
+	        Independent(X_vel, refQuat);
+	        ADVector q = X_vel.head(13);
+	        pin::forwardKinematics(pinADModel, pinADData, q);
+	        pin::updateFramePlacements(pinADModel, pinADData);
+	        ADMatrix R = ADMatrix::Zero(3,3); R = pinADData.oMf[ID].rotation();
+	        ADVector quat(4); //rot2quatAD(R,quat);
+	        quat = rot2quat_tmpl<ADScalar>(R);
+	        //this->quatCostFun->Dependent(X,res);
+	        /**Generate AD function and stop recording **/
+	        ADFun<Scalar> fkine_quat(X_vel,quat);
+	        this->quatFun = std::move(fkine_quat);
+}
 ////
 void Sensor::setGyrADFun(ADModel const & pinADModel, ADData & pinADData){
-	        /**Set an AD configuration ad_q **/
 
-			ADVector X_vel = ADMatrix::Zero(pinADModel.nv*2,1);
-			ADConfigVectorType q = randomConfiguration(pinADModel);
-			ADTangentVectorType dq = ADTangentVectorType::Random(pinADModel.nv);
-			q_dq_to_x<ADVector>(X_vel, q, dq);
+	        /**Set an AD configuration ad_q **/
+			ADVector X_vel = ADMatrix::Zero(13*3,1);
+			X_vel.head(13) = randomConfiguration(pinADModel);
+			X_vel.segment(13, 13)= ADTangentVectorType::Random(13);
+			X_vel.tail(13)= ADTangentVectorType::Random(13);
 			ADVector refGyr = ADMatrix::Zero(3,1);
 			int ID = this->ID;
 			std::cout << "Independent " << std::endl;
 	        CppAD::Independent(X_vel, refGyr);
 
-	        ADVector ad_q(pinADModel.nv), ad_dq(pinADModel.nv);
+	        ADVector ad_q(13), ad_dq(13);
 	        std::cout << "x_to_q_dq " << std::endl;
-	        x_to_q_dq<ADVector>(X_vel, ad_q, ad_dq);
+	        //x_to_q_dq<ADVector>(X_vel, ad_q, ad_dq);
+	        ad_q = X_vel.head(13);
+	        ad_dq = X_vel.segment(13,13);
 	        std::cout << "Forward kinematics " << std::endl;
-	        pin::forwardKinematics(pinADModel, pinADData, ad_q, ad_dq);
+	        pin::forwardKinematics(pinADModel, pinADData, ad_q);
 	        pin::updateFramePlacements(pinADModel, pinADData);
 	        std::cout << "GetFrameVel " << std::endl;
 	        ADVector gyr(3); gyr = getFrameVelocity(pinADModel, pinADData, ID).angular();
@@ -248,6 +298,39 @@ void Sensor::setGyrADFun(ADModel const & pinADModel, ADData & pinADData){
 			this->gyrCostFunAD = fkine_gyr.base2ad();
 	        this->gyrCostFun = std::move(fkine_gyr);
 }
+
+////
+void Sensor::setGyrFun(ADModel const & pinADModel, ADData & pinADData){
+
+	        /**Set an AD configuration ad_q **/
+			ADVector X_vel = ADMatrix::Zero(13*3,1);
+			X_vel.head(13) = randomConfiguration(pinADModel);
+			X_vel.segment(13, 13)= ADTangentVectorType::Random(13);
+			X_vel.tail(13)= ADTangentVectorType::Random(13);
+			ADVector refGyr = ADMatrix::Zero(3,1);
+			int ID = this->ID;
+			std::cout << "Independent " << std::endl;
+	        CppAD::Independent(X_vel, refGyr);
+
+	        ADVector ad_q(13), ad_dq(13);
+	        std::cout << "x_to_q_dq " << std::endl;
+	        //x_to_q_dq<ADVector>(X_vel, ad_q, ad_dq);
+	        ad_q = X_vel.head(13);
+	        ad_dq = X_vel.segment(13,13);
+	        std::cout << "Forward kinematics " << std::endl;
+	        pin::forwardKinematics(pinADModel, pinADData, ad_q);
+	        pin::updateFramePlacements(pinADModel, pinADData);
+	        std::cout << "GetFrameVel " << std::endl;
+	        ADVector gyr(3); gyr = getFrameVelocity(pinADModel, pinADData, ID).angular();
+
+	        std::cout << "Make dependent " << std::endl;
+	        /**Generate AD function and stop recording **/
+	        //this->gyrCostFun->Dependent(X_vel, res);
+	        std::cout << "Made dependent " << std::endl;
+	        ADFun<Scalar> fkine_gyr(X_vel,gyr);
+	        this->gyrFun = std::move(fkine_gyr);
+}
+
 //
 void Sensor::setAccADFun(ADModel const & pinADModel, ADData & pinADData){
 	        /**Set an AD configuration ad_q **/
@@ -409,19 +492,6 @@ void Limb::addSensor(int const & nb_sensor_var, string ID){
 
 void Limb::refreshSensors(dataType const & typeData){
 	/*This function refreshes the measurement of each Sensor object, either REF or EST, using pinModel and pinData */
-//	if(typeData == EST){
-//		for (unsigned int i =0; i<this->sensors.size(); i++)
-//		{
-//			this->sensors[i].setMeas(this->pinModel, this->pinData, this->estState);
-//		}
-//		this->refreshLimbMeas(typeData);
-//	}else if (typeData == REF){
-//		for (unsigned int i =0; i<this->sensors.size(); i++)
-//		{
-//			this->sensors[i].setMeas(this->pinModel, this->pinData, this->refState);
-//		}
-//		this->refreshLimbMeas(typeData);
-//	}
 	if(typeData == EST || typeData == ESTeval){
 		for (unsigned int i =0; i<this->sensors.size(); i++)
 		{
@@ -467,43 +537,86 @@ void Limb::refreshSensors(dataType const & typeData){
 //	}
 //}
 
+//void Limb::refreshLimbMeas(dataType const & typeData){
+//	/*This function refreshes the measurement of the measurement vectors of the Limb object
+//	 * getting them directly from each Sensor object
+//	 * A call of refreshSensors() is needed before this method */
+//	if (typeData == EST)
+//	{
+//		ScalarVector newMeas = ScalarMatrix::Zero(this->estMeas.rows(), 1);
+//		for (unsigned int i = 0; i<this->sensors.size(); i++)
+//		{
+//			this->estMeas.segment(i*this->sensors[i]->getNbMeasVar(), this->sensors[i]->getNbMeasVar()) = this->sensors[i]->getMeas(EST);
+//		}
+//		this->estTraj.measTraj.push_back(this->estMeas);
+//	}else if (typeData == REF)
+//	{
+//		ScalarVector newMeas = ScalarMatrix::Zero(this->refMeas.rows(), 1);
+//		for (unsigned int i = 0; i<this->sensors.size(); i++)
+//		{
+//			this->refMeas.segment(i*this->sensors[i]->getNbMeasVar(), this->sensors[i]->getNbMeasVar()) = this->sensors[i]->getMeas(REF);
+//		}
+//		this->refTraj.measTraj.push_back(this->refMeas);
+//	}else if (typeData == REFeval)
+//	{
+//		ScalarVector newMeas = ScalarMatrix::Zero(this->refMeas.rows(), 1);
+//		for (unsigned int i = 0; i<this->sensors.size(); i++)
+//		{
+//			this->refMeas.segment(i*this->sensors[i]->getNbMeasVar(), this->sensors[i]->getNbMeasVar()) = this->sensors[i]->getMeas(REF);
+//		}
+//	}else if (typeData == ESTeval)
+//	{
+//		ScalarVector newMeas = ScalarMatrix::Zero(this->refMeas.rows(), 1);
+//		for (unsigned int i = 0; i<this->sensors.size(); i++)
+//		{
+//			this->estMeas.segment(i*this->sensors[i]->getNbMeasVar(), this->sensors[i]->getNbMeasVar()) = this->sensors[i]->getMeas(EST);
+//		}
+//	}
+//}
+
 void Limb::refreshLimbMeas(dataType const & typeData){
-	/*This function refreshes the measurement of the measurement vectors of the Limb object
-	 * getting them directly from each Sensor object
-	 * A call of refreshSensors() is needed before this method */
-	if (typeData == EST)
+
+	//ScalarVector posGyrQuat = ScalarMatrix::Zero(this->nb_sensors*3 + this->nb_sensors*3 + this->nb_sensors*3 + this->nb_sensors*4, 1);
+	if(typeData == REF)
 	{
-		ScalarVector newMeas = ScalarMatrix::Zero(this->estMeas.rows(), 1);
-		for (unsigned int i = 0; i<this->sensors.size(); i++)
+		for (int i =0; i < 3; i++)
 		{
-			this->estMeas.segment(i*this->sensors[i]->getNbMeasVar(), this->sensors[i]->getNbMeasVar()) = this->sensors[i]->getMeas(EST);
-		}
-		this->estTraj.measTraj.push_back(this->estMeas);
-	}else if (typeData == REF)
-	{
-		ScalarVector newMeas = ScalarMatrix::Zero(this->refMeas.rows(), 1);
-		for (unsigned int i = 0; i<this->sensors.size(); i++)
-		{
-			this->refMeas.segment(i*this->sensors[i]->getNbMeasVar(), this->sensors[i]->getNbMeasVar()) = this->sensors[i]->getMeas(REF);
+			this->refMeas.segment(i*3, 3) = this->sensors[i]->getMeas(typeData).head(3);
+			this->refMeas.segment(9 + i*3, 3) = this->sensors[i]->getMeas(typeData).segment(3,3);
+			this->refMeas.segment(18 + i*3, 3) = this->sensors[i]->getMeas(typeData).segment(6,3);
+			this->refMeas.segment(27 + i*4, 4) = this->sensors[i]->getMeas(typeData).tail(4);
 		}
 		this->refTraj.measTraj.push_back(this->refMeas);
-	}else if (typeData == REFeval)
+	}else if(typeData == EST)
 	{
-		ScalarVector newMeas = ScalarMatrix::Zero(this->refMeas.rows(), 1);
-		for (unsigned int i = 0; i<this->sensors.size(); i++)
+		for (int i =0; i < 3; i++)
 		{
-			this->refMeas.segment(i*this->sensors[i]->getNbMeasVar(), this->sensors[i]->getNbMeasVar()) = this->sensors[i]->getMeas(REF);
+			this->estMeas.segment(i*3, 3) = this->sensors[i]->getMeas(typeData).head(3);
+			this->estMeas.segment(9 + i*3, 3) = this->sensors[i]->getMeas(typeData).segment(3,3);
+			this->estMeas.segment(18 + i*3, 3) = this->sensors[i]->getMeas(typeData).segment(6,3);
+			this->estMeas.segment(27 + i*4, 4) = this->sensors[i]->getMeas(typeData).tail(4);
 		}
-	}else if (typeData == ESTeval)
+		this->estTraj.measTraj.push_back(this->estMeas);
+	}else if(typeData == ESTeval)
 	{
-		ScalarVector newMeas = ScalarMatrix::Zero(this->refMeas.rows(), 1);
-		for (unsigned int i = 0; i<this->sensors.size(); i++)
+			for (int i =0; i < 3; i++)
+			{
+				this->estMeas.segment(i*3, 3) = this->sensors[i]->getMeas(typeData).head(3);
+				this->estMeas.segment(9 + i*3, 3) = this->sensors[i]->getMeas(typeData).segment(3,3);
+				this->estMeas.segment(18 + i*3, 3) = this->sensors[i]->getMeas(typeData).segment(6,3);
+				this->estMeas.segment(27 + i*4, 4) = this->sensors[i]->getMeas(typeData).tail(4);
+			}
+	}else if(typeData == REFeval)
+	{
+		for (int i =0; i < 3; i++)
 		{
-			this->estMeas.segment(i*this->sensors[i]->getNbMeasVar(), this->sensors[i]->getNbMeasVar()) = this->sensors[i]->getMeas(EST);
+			this->refMeas.segment(i*3, 3) = this->sensors[i]->getMeas(typeData).head(3);
+			this->refMeas.segment(9 + i*3, 3) = this->sensors[i]->getMeas(typeData).segment(3,3);
+			this->refMeas.segment(18 + i*3, 3) = this->sensors[i]->getMeas(typeData).segment(6,3);
+			this->refMeas.segment(27 + i*4, 4) = this->sensors[i]->getMeas(typeData).tail(4);
 		}
 	}
 }
-
 //void Limb::refreshLimbMeas(dataType const & typeData){
 //	/*This function refreshes the measurement of the measurement vectors of the Limb object
 //	 * getting them directly from each Sensor object
@@ -552,6 +665,34 @@ void Limb::setJointPos(ScalarVector const & newJointPos, dataType const & typeDa
 		this->refState.q = newJointPos;
 	}else if (typeData == ESTeval){
 		this->estState.q = newJointPos;
+	}
+}
+
+void Limb::setJointVel(ScalarVector const & newJointPos, dataType const & typeData){
+	if (typeData == REF){
+		this->refState.dq = newJointPos;
+		this->refTraj.dqTraj.push_back(newJointPos);
+	}else if (typeData == EST){
+		this->estState.dq = newJointPos;
+		this->estTraj.dqTraj.push_back(newJointPos);
+	}else if (typeData == REFeval){
+		this->refState.dq = newJointPos;
+	}else if (typeData == ESTeval){
+		this->estState.dq = newJointPos;
+	}
+}
+
+void Limb::setJointAcc(ScalarVector const & newJointPos, dataType const & typeData){
+	if (typeData == REF){
+		this->refState.ddq = newJointPos;
+		this->refTraj.ddqTraj.push_back(newJointPos);
+	}else if (typeData == EST){
+		this->estState.ddq = newJointPos;
+		this->estTraj.ddqTraj.push_back(newJointPos);
+	}else if (typeData == REFeval){
+		this->refState.ddq = newJointPos;
+	}else if (typeData == ESTeval){
+		this->estState.ddq = newJointPos;
 	}
 }
 
@@ -643,7 +784,7 @@ ScalarVector Limb::getLimb_res_Jacobian() const{
 
 void Limb::setResidualCostFuncPos(){
 	/** -------- ONLY POSITIONS ---------**/
-	ADVector q = ADMatrix::Zero(this->nb_states,1);
+	ADVector q = ADMatrix::Zero(this->nb_states*3,1);
 	ADVector refMeas = ADMatrix::Zero(9, 1);
 
 	Independent(q, refMeas);
@@ -666,12 +807,12 @@ void Limb::setResidualCostFuncPos(){
 
 void Limb::setResidualCostFuncPosQuat(){
 	/** -------- ONLY POSITIONS ---------**/
-	ADVector q = ADMatrix::Zero(this->nb_states,1);
+	ADVector q = ADMatrix::Zero(this->nb_states*3,1);
 	ADVector refMeas = ADMatrix::Zero(9 + 12, 1);
 
 	Independent(q, refMeas);
 	ADVector sensorsResiduals = ADMatrix::Zero(this->nb_sensors,1); //Contains the residuals of each sensor
-
+	//ADVector q2 = q.head(13);
 	for(int i =0; i<3; i++)
 	{
 
@@ -689,6 +830,99 @@ void Limb::setResidualCostFuncPosQuat(){
 
 	this->residualCostFunc = std::move(residualFun);
 }
+
+void Limb::setResidualCostFuncPosQuatQvel(){
+	/** -------- ONLY POSITIONS ---------**/
+	ADVector q = ADMatrix::Zero(this->nb_states*3,1);
+	ADVector refMeas = ADMatrix::Zero(9 + 12 + 13, 1);
+
+	Independent(q, refMeas);
+	ADVector sensorsResiduals = ADMatrix::Zero(this->nb_sensors,1); //Contains the residuals of each sensor
+	//ADVector q2 = q.head(13);
+	ADVector q_prev = refMeas.tail(13);
+	for(int i =0; i<3; i++)
+	{
+
+		ADVector Pos = refMeas.segment(0 + i*3, 3);
+		ADVector Quat = refMeas.segment(9 + i*4, 4);
+		this->sensors[i]->posCostFunAD.new_dynamic(Pos);
+		this->sensors[i]->quatCostFunAD.new_dynamic(Quat);
+		sensorsResiduals(i) = (this->sensors[i]->posCostFunAD.Forward(0,q) + this->sensors[i]->quatCostFunAD.Forward(0,q))(0);
+	}
+	ADVector cst = ADVector::Zero(13,1);
+//	ADScalar newVal = 3;
+//	for(int i = 0; i < c st.rows(), i++)
+//	{
+//		cst(i) = newVal;
+//	}
+	ADVector finalResidual(1);
+	ADVector dq = (q.head(13) - q_prev)/dT;
+	ADScalar regul_dq = (dq - cst).squaredNorm();
+	finalResidual(0) = sensorsResiduals.sum() + 1e-10*regul_dq;
+
+	ADFun<Scalar> residualFun(q, finalResidual);
+
+	this->residualCostFunc = std::move(residualFun);
+}
+
+void Limb::setResidualCostFuncPosQuatGyr(){
+	/** -------- ONLY POSITIONS ---------**/
+	ADVector X = ADMatrix::Zero(this->nb_states*3,1);
+	ADVector refMeas = ADMatrix::Zero(9 + 9 + 12 + 13, 1);
+
+	Independent(X, refMeas);
+	ADVector sensorsResiduals = ADMatrix::Zero(this->nb_sensors,1); //Contains the residuals of each sensor
+	//ADVector q = X.head(13);
+	for(int i =0; i<3; i++)
+	{
+
+		ADVector Pos = refMeas.segment(0 + i*3, 3);
+		ADVector Gyr = refMeas.segment(9 + i*3, 3);
+		ADVector Quat = refMeas.segment(18 + i*4, 4);
+		this->sensors[i]->posCostFunAD.new_dynamic(Pos);
+		this->sensors[i]->gyrCostFunAD.new_dynamic(Gyr);
+		this->sensors[i]->quatCostFunAD.new_dynamic(Quat);
+		sensorsResiduals(i) = (this->sensors[i]->posCostFunAD.Forward(0,X) + this->sensors[i]->quatCostFunAD.Forward(0,X) + this->sensors[i]->gyrCostFunAD.Forward(0,X))(0);
+		//sensorsResiduals(i) = (this->sensors[i]->gyrCostFunAD.Forward(0,X))(0);
+
+	}
+	ADVector finalResidual(1);
+
+	finalResidual(0) = sensorsResiduals.sum();
+
+	ADFun<Scalar> residualFun(X, finalResidual);
+
+	this->residualCostFunc = std::move(residualFun);
+}
+
+void Limb::setResidualCostFuncPosQuatAcc(){
+	/** -------- ONLY POSITIONS ---------**/
+	ADVector X = ADMatrix::Zero(this->nb_states*3,1);
+	ADVector refMeas = ADMatrix::Zero(9 + 9 + 12, 1);
+
+	Independent(X, refMeas);
+	ADVector sensorsResiduals = ADMatrix::Zero(this->nb_sensors,1); //Contains the residuals of each sensor
+	ADVector q = X.head(13);
+	for(int i =0; i<3; i++)
+	{
+
+		ADVector Pos = refMeas.segment(0 + i*3, 3);
+		ADVector Acc = refMeas.segment(9 + i*3, 3);
+		ADVector Quat = refMeas.segment(18 + i*4, 4);
+		this->sensors[i]->posCostFunAD.new_dynamic(Pos);
+		this->sensors[i]->accCostFunAD.new_dynamic(Acc);
+		this->sensors[i]->quatCostFunAD.new_dynamic(Quat);
+		sensorsResiduals(i) = (this->sensors[i]->posCostFunAD.Forward(0,q) + this->sensors[i]->quatCostFunAD.Forward(0,q) + this->sensors[i]->accCostFunAD.Forward(0,X))(0);
+	}
+	ADVector finalResidual(1);
+
+	finalResidual(0) = sensorsResiduals.sum();
+
+	ADFun<Scalar> residualFun(X, finalResidual);
+
+	this->residualCostFunc = std::move(residualFun);
+}
+
 //void Limb::setResidualCostFunc(){
 //	ADVector X = ADMatrix::Zero(this->nb_states*3,1);
 //	ADVector refMeas = ADMatrix::Zero(this->nb_meas, 1);
@@ -746,41 +980,73 @@ ScalarVector Limb::getResidualJacobian(ScalarVector const & X, ScalarVector cons
 	return this->residualJacobian;
 }
 
-void Limb::setJointNumDerivatives(dataType const & typeData){
-	if (this->estTraj.qTraj.size() >= 2 && typeData == EST){
-		this->estState.dq = (this->estTraj.qTraj[this->estTraj.qTraj.size()-1] -  this->estTraj.qTraj[this->estTraj.qTraj.size()-2])/Te;
-		this->estTraj.dqTraj.push_back(this->estState.dq);
-		this->estState.ddq = (this->estTraj.dqTraj[this->estTraj.dqTraj.size()-1] -  this->estTraj.dqTraj[this->estTraj.dqTraj.size()-2])/Te;
-		this->estTraj.ddqTraj.push_back(this->estState.ddq);
-	}else if (this->estTraj.qTraj.size() >= 2 && typeData == REF){
-		this->refState.dq = (this->refTraj.qTraj[this->refTraj.qTraj.size()-1] -  this->refTraj.qTraj[this->refTraj.qTraj.size()-2])/Te;
-		this->refTraj.dqTraj.push_back(this->refState.dq);
-		this->refState.ddq = (this->refTraj.dqTraj[this->refTraj.dqTraj.size()-1] -  this->refTraj.dqTraj[this->refTraj.dqTraj.size()-2])/Te;
-		this->refTraj.ddqTraj.push_back(this->refState.ddq);
-	}else if (this->estTraj.qTraj.size() >= 1 && typeData == REFeval){
-//		this->refState.dq = (this->refTraj.qTraj[this->refTraj.qTraj.size()-1] -  this->refTraj.qTraj[this->refTraj.qTraj.size()-2])/Te;
-//		this->refState.ddq = (this->refTraj.dqTraj[this->refTraj.dqTraj.size()-1] -  this->refTraj.dqTraj[this->refTraj.dqTraj.size()-2])/Te;
+//void Limb::setJointNumDerivatives(dataType const & typeData){
+//	if (this->estTraj.qTraj.size() >= 2 && typeData == EST){
+//		this->estState.dq = (this->estTraj.qTraj[this->estTraj.qTraj.size()-1] -  this->estTraj.qTraj[this->estTraj.qTraj.size()-2])/dT;
+//		this->estTraj.dqTraj.push_back(this->estState.dq);
+//		this->estState.ddq = (this->estTraj.dqTraj[this->estTraj.dqTraj.size()-1] -  this->estTraj.dqTraj[this->estTraj.dqTraj.size()-2])/dT;
+//		this->estTraj.ddqTraj.push_back(this->estState.ddq);
+//	}else if (this->estTraj.qTraj.size() >= 2 && typeData == REF){
+//		this->refState.dq = (this->refTraj.qTraj[this->refTraj.qTraj.size()-1] -  this->refTraj.qTraj[this->refTraj.qTraj.size()-2])/dT;
+//		this->refTraj.dqTraj.push_back(this->refState.dq);
+//		this->refState.ddq = (this->refTraj.dqTraj[this->refTraj.dqTraj.size()-1] -  this->refTraj.dqTraj[this->refTraj.dqTraj.size()-2])/dT;
+//		this->refTraj.ddqTraj.push_back(this->refState.ddq);
+//	}else if(this->estTraj.qTraj.size() < 2 && (typeData == REF || typeData == EST)){
+//		this->estTraj.dqTraj.push_back(this->estState.dq);
+//		this->estTraj.ddqTraj.push_back(this->estState.ddq);
+//		this->refTraj.dqTraj.push_back(this->refState.dq);
+//		this->refTraj.ddqTraj.push_back(this->refState.ddq);
+//
+//	}else if (this->estTraj.qTraj.size() >= 1 && typeData == REFeval){
+////		this->refState.dq = (this->refTraj.qTraj[this->refTraj.qTraj.size()-1] -  this->refTraj.qTraj[this->refTraj.qTraj.size()-2])/Te;
+////		this->refState.ddq = (this->refTraj.dqTraj[this->refTraj.dqTraj.size()-1] -  this->refTraj.dqTraj[this->refTraj.dqTraj.size()-2])/Te;
+//
+//		this->refState.dq = (this->refState.q -  this->refTraj.qTraj[this->refTraj.qTraj.size()-1])/dT;
+//		//std::cout << "Ref dq : " << this->refState.q.transpose() << std::endl;
+//		this->refState.ddq = (this->refState.dq -  this->refTraj.dqTraj[this->refTraj.dqTraj.size()-1])/dT;
+//	}else if (this->estTraj.qTraj.size() >= 1 && typeData == ESTeval){
+//		this->estState.dq = (this->estState.q -  this->estTraj.qTraj[this->estTraj.qTraj.size()-1])/dT;
+//		//std::cout << "Est dq : " << this->estState.q.transpose() << std::endl;
+//		this->estState.ddq = (this->estState.dq -  this->estTraj.dqTraj[this->estTraj.dqTraj.size()-1])/dT;
+//	}
+//}
 
-		this->refState.dq = (this->refState.q -  this->refTraj.qTraj[this->refTraj.qTraj.size()-1])/Te;
-		//std::cout << "Ref dq : " << this->refState.q.transpose() << std::endl;
-		this->refState.ddq = (this->refState.dq -  this->refTraj.dqTraj[this->refTraj.dqTraj.size()-1])/Te;
-	}else if (this->estTraj.qTraj.size() >= 1 && typeData == ESTeval){
-		this->estState.dq = (this->estState.q -  this->estTraj.qTraj[this->estTraj.qTraj.size()-1])/Te;
-		//std::cout << "Est dq : " << this->estState.q.transpose() << std::endl;
-		this->estState.ddq = (this->estState.dq -  this->estTraj.dqTraj[this->estTraj.dqTraj.size()-1])/Te;
+void Limb::setJointNumDerivatives(ScalarVector const & q_es, dataType const & typeData){
+//	std::cout << "q_es : " << q_es.transpose() << std::endl;
+//	std::cout << "dT : " << dT << std::endl;
+//	std::cout << "this->estTraj.qTraj[this->estTraj.qTraj.size()-1] : " << this->estTraj.qTraj[this->estTraj.qTraj.size()-1].transpose() << std::endl;
+//	std::cout << "(q_es - q_es(t-1))/dT : " << ((q_es - this->estTraj.qTraj[this->estTraj.qTraj.size()-1])/dT).transpose() << std::endl;
+//	ScalarVector q_es_prev = this->estTraj.qTraj[this->estTraj.qTraj.size()-1];
+////	std::cout << "q_es_prev : " << q_es_prev.transpose() << std::endl;
+//	ScalarVector zeez = q_es - q_es_prev;
+//	std::cout << "zeez : " << zeez.transpose() << std::endl;
+//	std::cout << "zeez/dT : " << zeez/dT << std::endl;
+	if(typeData == ESTeval)
+	{
+		this->estState.dq = (q_es - this->estTraj.qTraj[this->estTraj.qTraj.size()-1])/dT;
+		this->estState.ddq = (this->estState.dq - this->estTraj.dqTraj[this->estTraj.dqTraj.size()-1])/dT;
+	}else if(typeData == EST)
+	{
+		this->estState.dq = (q_es - this->estTraj.qTraj[this->estTraj.qTraj.size()-2])/dT;
+		this->estTraj.dqTraj.push_back(this->estState.dq);
+//		std::cout << "Size : " << this->estTraj.dqTraj.size() << std::endl;
+//		std::cout << this->estTraj.dqTraj[this->estTraj.dqTraj.size()-2].transpose() << std::endl;
+		this->estState.ddq = (this->estState.dq - this->estTraj.dqTraj[this->estTraj.dqTraj.size()-2])/dT;
+		this->estTraj.ddqTraj.push_back(this->estState.ddq);
 	}
 }
+
 void Limb::setJointNumDerivatives(){
 	if (this->estTraj.qTraj.size() >= 2){
-		this->estState.dq = (this->estTraj.qTraj[this->estTraj.qTraj.size()-1] -  this->estTraj.qTraj[this->estTraj.qTraj.size()-2])/Te;
+		this->estState.dq = (this->estTraj.qTraj[this->estTraj.qTraj.size()-1] -  this->estTraj.qTraj[this->estTraj.qTraj.size()-2])/dT;
 		this->estTraj.dqTraj.push_back(this->estState.dq);
-		this->estState.ddq = (this->estTraj.dqTraj[this->estTraj.dqTraj.size()-1] -  this->estTraj.dqTraj[this->estTraj.dqTraj.size()-2])/Te;
+		this->estState.ddq = (this->estTraj.dqTraj[this->estTraj.dqTraj.size()-1] -  this->estTraj.dqTraj[this->estTraj.dqTraj.size()-2])/dT;
 		this->estTraj.ddqTraj.push_back(this->estState.ddq);
-		this->refState.dq = (this->refTraj.qTraj[this->refTraj.qTraj.size()-1] -  this->refTraj.qTraj[this->refTraj.qTraj.size()-2])/Te;
+		this->refState.dq = (this->refTraj.qTraj[this->refTraj.qTraj.size()-1] -  this->refTraj.qTraj[this->refTraj.qTraj.size()-2])/dT;
 		this->refTraj.dqTraj.push_back(this->refState.dq);
-		this->refState.ddq = (this->refTraj.dqTraj[this->refTraj.dqTraj.size()-1] -  this->refTraj.dqTraj[this->refTraj.dqTraj.size()-2])/Te;
+		this->refState.ddq = (this->refTraj.dqTraj[this->refTraj.dqTraj.size()-1] -  this->refTraj.dqTraj[this->refTraj.dqTraj.size()-2])/dT;
 		this->refTraj.ddqTraj.push_back(this->refState.ddq);
-	}else if (this->estTraj.qTraj.size() < 2){
+	}else if (this->estTraj.qTraj.size() <= 1){
 		this->estTraj.dqTraj.push_back(this->estState.dq);
 		this->estTraj.ddqTraj.push_back(this->estState.ddq);
 		this->refTraj.dqTraj.push_back(this->refState.dq);
@@ -825,4 +1091,50 @@ ScalarVector Limb::getSensorsPosQuat(dataType const & typeData) const{
 		}
 	}
 	return posQuat;
+}
+
+ScalarVector Limb::getSensorsPosQuatGyr(dataType const & typeData) const{
+
+	ScalarVector posGyrQuat = ScalarMatrix::Zero(this->nb_sensors*3 + this->nb_sensors*3 + this->nb_sensors*4, 1);
+	if(typeData == REF || typeData == REFeval)
+	{
+		for (int i =0; i < 3; i++)
+		{
+			posGyrQuat.segment(i*3, 3) = this->sensors[i]->getMeas(typeData).head(3);
+			posGyrQuat.segment(9 + i*3, 3) = this->sensors[i]->getMeas(typeData).segment(3,3);
+			posGyrQuat.segment(18 + i*4, 4) = this->sensors[i]->getMeas(typeData).tail(4);
+		}
+	}else if(typeData == EST || typeData == ESTeval)
+	{
+		for (int i =0; i < 3; i++)
+		{
+			posGyrQuat.segment(i*3, 3) = this->sensors[i]->getMeas(typeData).head(3);
+			posGyrQuat.segment(9 + i*3, 3) = this->sensors[i]->getMeas(typeData).segment(3,3);
+			posGyrQuat.segment(18 + i*4, 4) = this->sensors[i]->getMeas(typeData).tail(4);
+		}
+	}
+	return posGyrQuat;
+}
+
+ScalarVector Limb::getSensorsPosQuatAcc(dataType const & typeData) const{
+
+	ScalarVector posGyrQuat = ScalarMatrix::Zero(this->nb_sensors*3 + this->nb_sensors*3 + this->nb_sensors*4, 1);
+	if(typeData == REF || typeData == REFeval)
+	{
+		for (int i =0; i < 3; i++)
+		{
+			posGyrQuat.segment(i*3, 3) = this->sensors[i]->getMeas(typeData).head(3);
+			posGyrQuat.segment(9 + i*3, 3) = this->sensors[i]->getMeas(typeData).segment(6,3);
+			posGyrQuat.segment(18 + i*4, 4) = this->sensors[i]->getMeas(typeData).tail(4);
+		}
+	}else if(typeData == EST || typeData == ESTeval)
+	{
+		for (int i =0; i < 3; i++)
+		{
+			posGyrQuat.segment(i*3, 3) = this->sensors[i]->getMeas(typeData).head(3);
+			posGyrQuat.segment(9 + i*3, 3) = this->sensors[i]->getMeas(typeData).segment(6,3);
+			posGyrQuat.segment(18 + i*4, 4) = this->sensors[i]->getMeas(typeData).tail(4);
+		}
+	}
+	return posGyrQuat;
 }

@@ -1,22 +1,16 @@
 /*
- * limb-simple-ipopt.cpp
+ * limb-q_dq-ipopt.cpp
  *
- *  Created on: 7 Nov 2020
+ *  Created on: 27 Nov 2020
  *      Author: aladinedev2
  */
 
 
+#include "limb-q_dq-ipopt.hpp"
 
 
-#include "limb-simple-ipopt.hpp"
-//#include "IpTNLP.hpp"
-//#include "kinematics.hpp"
-//#include <stdlib.h>
-//#include <iostream>
 
-using namespace Ipopt;
-
-limb_NLP::limb_NLP(string const & urdf_filename, int const & nb_states, int const & nb_measurements, int const & nb_sensors){
+limb_q_dq_NLP::limb_q_dq_NLP(string const & urdf_filename, int const & nb_states, int const & nb_measurements, int const & nb_sensors){
 
 	//Generate Polynomial Reference Trajectory
 	this->pol.setTraj(readTrajFromCSV(2, "pos"));
@@ -29,25 +23,28 @@ limb_NLP::limb_NLP(string const & urdf_filename, int const & nb_states, int cons
     this->limb.addSensor(13, "IMU1_link");
     this->limb.addSensor(13, "IMU2_link");
     this->limb.addSensor(13, "IMU3_link");
-    this->limb.setResidualCostFuncPosQuatQvel();
+    this->limb.setResidualCostFuncPosQuatGyr();
 	this->X_es = ScalarMatrix::Zero(39,1);
 	this->counter = 0;
 	ScalarVector q_init = this->pol.getTraj().col(this->counter).segment(6,7);
-	this->setInitPoint(q_init);
+	ScalarVector dq_init = this->ref_dq_Traj.col(this->counter).segment(6,7);
+	this->initPoint = ScalarMatrix::Zero(q_init.rows()*2, 1);
+	this->setInitPoint(q_init, dq_init);
 }
-limb_NLP::~limb_NLP(){
+limb_q_dq_NLP::~limb_q_dq_NLP(){
 
 }
 
-void limb_NLP::setInitPoint(ScalarVector const & q_est){
-	this->initPoint = q_est;
+void limb_q_dq_NLP::setInitPoint(ScalarVector const & q_est, ScalarVector const & dq_est){
+	this->initPoint.head(7) = q_est;
+	this->initPoint.tail(7) = dq_est;
 }
 
-std::vector<ScalarVector> limb_NLP::getEvalTrajectory(){
+std::vector<ScalarVector> limb_q_dq_NLP::getEvalTrajectory(){
 	return this->evalTrajectory;
 }
 // returns the size of the problem
-bool limb_NLP::get_nlp_info(
+bool limb_q_dq_NLP::get_nlp_info(
    Index&          n,
    Index&          m,
    Index&          nnz_jac_g,
@@ -56,7 +53,7 @@ bool limb_NLP::get_nlp_info(
 )
 {
    // The problem described in HS071_NLP.hpp has 4 variables, x[0] through x[3]
-   n = 7;
+   n = 14;
    // one equality constraint and one inequality constraint
    m = 0;
    // in this example the jacobian is dense and contains 8 nonzeros
@@ -69,7 +66,7 @@ bool limb_NLP::get_nlp_info(
    return true;
 }
 
-bool limb_NLP::get_bounds_info(
+bool limb_q_dq_NLP::get_bounds_info(
    Index   n,
    Number* x_l,
    Number* x_u,
@@ -81,7 +78,7 @@ bool limb_NLP::get_bounds_info(
 		//std::cout << "I'm getting bounds info" << std::endl;
 	   // here, the n and m we gave IPOPT in get_nlp_info are passed back to us.
 	   // If desired, we could assert to make sure they are what we think they are.
-	   assert(n == 7);
+	   assert(n == 14);
 	   assert(m == 0);
 //	   // the variables have lower bounds of 1
 //	   for (int i = 0; i<n; i++){
@@ -115,7 +112,7 @@ bool limb_NLP::get_bounds_info(
 }
 
 // returns the initial point for the problem
-bool limb_NLP::get_starting_point(
+bool limb_q_dq_NLP::get_starting_point(
    Index   n,
    bool    init_x,
    Number* x,
@@ -130,7 +127,7 @@ bool limb_NLP::get_starting_point(
    // Here, we assume we only have starting values for x, if you code
    // your own NLP, you can provide starting values for the dual variables
    // if you wish
-   assert(n == 7);
+   assert(n == 14);
 
 //   std::cout << " ------------ SETTING START POINT : ------------ " << this->counter << std::endl;
    assert(init_x == true);
@@ -151,33 +148,31 @@ bool limb_NLP::get_starting_point(
    return true;
 }
 
-bool limb_NLP::eval_f(
+bool limb_q_dq_NLP::eval_f(
    Index         n,
    const Number* x,
    bool          new_x,
    Number&       obj_value
 )
 {
-	assert(n == 7);
+	assert(n == 14);
 //	std::cout << " ------------ EVALUATIING F : ------------ " << this->counter << std::endl;
 	this->limb.setJointPos(this->pol.getTraj().col(this->counter), REFeval);
    	this->limb.setJointVel(this->ref_dq_Traj.col(this->counter), REFeval);
    	this->limb.setJointAcc(this->ref_ddq_Traj.col(this->counter), REFeval);
 	ScalarVector q_es = ScalarMatrix::Zero(13,1);
+	ScalarVector dq_es = ScalarMatrix::Zero(13,1);
 	q_es = this->limb.refState.q;
+	dq_es = this->limb.refState.dq;
 
 	for(int i = 0; i<7; i++)
 	{
 		q_es(i+6) = x[i];
+		dq_es(i+6) = x[i+7];
 	}
 	this->limb.setJointPos(q_es, ESTeval);
-	if (this->counter >= 1)
-	{
-		this->limb.setJointNumDerivatives(q_es, ESTeval);
-	}else{
-	   	this->limb.setJointVel(this->ref_dq_Traj.col(this->counter), ESTeval);
-	   	this->limb.setJointAcc(this->ref_ddq_Traj.col(this->counter), ESTeval);
-	}
+	this->limb.setJointVel(dq_es, ESTeval);
+
 
 	//this->limb.setJointNumDerivatives(ESTeval);
 	this->limb.refreshSensors(REFeval);
@@ -185,11 +180,11 @@ bool limb_NLP::eval_f(
 
 	ScalarVector X = ScalarMatrix::Zero(13*3,1);
 	X.head(13) = q_es;
-	X.segment(13, 13) = this->limb.estState.dq;
+	X.segment(13, 13) = dq_es;
 	X.tail(13) = this->limb.estState.ddq;
 
-	ScalarVector Param = ScalarMatrix::Zero(9 + 12 + 13, 1);
-	Param.head(9 + 12) = this->limb.getSensorsPosQuat(REF);
+	ScalarVector Param = ScalarMatrix::Zero(9 + 9 + 12 + 13, 1);
+	Param.head(9 + 9 + 12) = this->limb.getSensorsPosQuatGyr(REF);
 	if(counter > 0)
 	{
 		Param.tail(13) = this->limb.estTraj.qTraj[this->limb.estTraj.qTraj.size() - 1];
@@ -204,33 +199,31 @@ bool limb_NLP::eval_f(
 }
 
 // return the gradient of the objective function grad_{x} f(x)
-bool limb_NLP::eval_grad_f(
+bool limb_q_dq_NLP::eval_grad_f(
    Index         n,
    const Number* x,
    bool          new_x,
    Number*       grad_f
 )
 {
-   assert(n == 7);
-//   std::cout << "------------ EVALUATIING GRADIENT OF F : ------------" << this->counter << std::endl;
+	assert(n == 14);
+//	std::cout << " ------------ EVALUATIING F : ------------ " << this->counter << std::endl;
 	this->limb.setJointPos(this->pol.getTraj().col(this->counter), REFeval);
-  	this->limb.setJointVel(this->ref_dq_Traj.col(this->counter), REFeval);
-  	this->limb.setJointAcc(this->ref_ddq_Traj.col(this->counter), REFeval);
+	this->limb.setJointVel(this->ref_dq_Traj.col(this->counter), REFeval);
+	this->limb.setJointAcc(this->ref_ddq_Traj.col(this->counter), REFeval);
 	ScalarVector q_es = ScalarMatrix::Zero(13,1);
+	ScalarVector dq_es = ScalarMatrix::Zero(13,1);
 	q_es = this->limb.refState.q;
+	dq_es = this->limb.refState.dq;
 
 	for(int i = 0; i<7; i++)
 	{
 		q_es(i+6) = x[i];
+		dq_es(i+6) = x[i+7];
 	}
 	this->limb.setJointPos(q_es, ESTeval);
-	if (this->counter >= 1)
-	{
-		this->limb.setJointNumDerivatives(q_es, ESTeval);
-	}else{
-	   	this->limb.setJointVel(this->ref_dq_Traj.col(this->counter), ESTeval);
-	   	this->limb.setJointAcc(this->ref_ddq_Traj.col(this->counter), ESTeval);
-	}
+	this->limb.setJointVel(dq_es, ESTeval);
+
 	//this->limb.setJointNumDerivatives(ESTeval);
 	this->limb.refreshSensors(REFeval);
 	this->limb.refreshSensors(ESTeval);
@@ -240,8 +233,8 @@ bool limb_NLP::eval_grad_f(
 	X.segment(13, 13) = this->limb.estState.dq;
 	X.tail(13) = this->limb.estState.ddq;
 
-	ScalarVector Param = ScalarMatrix::Zero(9 + 12 + 13, 1);
-	Param.head(9 + 12) = this->limb.getSensorsPosQuat(REF);
+	ScalarVector Param = ScalarMatrix::Zero(9 + 9 + 12 + 13, 1);
+	Param.head(9 + 9 + 12) = this->limb.getSensorsPosQuatGyr(REF);
 	if(counter > 0)
 	{
 		Param.tail(13) = this->limb.estTraj.qTraj[this->limb.estTraj.qTraj.size() - 1];
@@ -255,11 +248,14 @@ bool limb_NLP::eval_grad_f(
    for (int i =0; i<7; i++){
 	   grad_f[i] = newJac(i+6);
    }
+   for (int i =0; i<7; i++){
+	   grad_f[i+7] = newJac(i+19);
+   }
    return true;
 }
 
 // return the value of the constraints: g(x)
-bool limb_NLP::eval_g(
+bool limb_q_dq_NLP::eval_g(
    Index         n,
    const Number* x,
    bool          new_x,
@@ -267,14 +263,14 @@ bool limb_NLP::eval_g(
    Number*       g
 )
 {
-   assert(n == 7);
+   assert(n == 14);
    assert(m == 0);
    //std::cout << "I'm evaluating g" << std::endl;
 //   g[0] = sin(x[0]);
 //   g[1] = cos(x[0]);
    return true;
 }
-bool limb_NLP::eval_jac_g(
+bool limb_q_dq_NLP::eval_jac_g(
    Index         n,
    const Number* x,
    bool          new_x,
@@ -285,7 +281,7 @@ bool limb_NLP::eval_jac_g(
    Number*       values
 )
 {
-	assert(n == 7);
+	assert(n == 14);
 	assert(m == 0);
 	nele_jac = 0;
 	//std::cout << "I'm evaluating gradient of g" << std::endl;
@@ -301,7 +297,7 @@ bool limb_NLP::eval_jac_g(
 
 	return true;
 }
-bool limb_NLP::eval_h(
+bool limb_q_dq_NLP::eval_h(
    Index         n,
    const Number* x,
    bool          new_x,
@@ -315,7 +311,7 @@ bool limb_NLP::eval_h(
    Number*       values
 )
 {
-   assert(n == 7);
+   assert(n == 14);
    assert(m == 0);
 
 
@@ -323,7 +319,7 @@ bool limb_NLP::eval_h(
 }
 // [TNLP_eval_h]
 
-void limb_NLP::finalize_solution(
+void limb_q_dq_NLP::finalize_solution(
    SolverReturn               status,
    Index                      n,
    const Number*              x,
@@ -337,7 +333,7 @@ void limb_NLP::finalize_solution(
    IpoptCalculatedQuantities* ip_cq
 )
 {
-	assert(n == 7);
+	assert(n == 14);
 	assert(m == 0);
 	//std::cout << "I'm finalizing solution" << std::endl;
 	std::cout << "COUNTER VALUE : " << this->counter << std::endl;
@@ -345,18 +341,21 @@ void limb_NLP::finalize_solution(
    	this->limb.setJointVel(this->ref_dq_Traj.col(this->counter), REF);
    	this->limb.setJointAcc(this->ref_ddq_Traj.col(this->counter), REF);
 	ScalarVector q_es = this->limb.refState.q;
+	ScalarVector dq_es = this->limb.refState.dq;
 	for(int i = 0; i<7; i++)
 	{
 		q_es(i+6) = x[i];
+		dq_es(i+6) = x[i+7];
 	}
 	this->limb.setJointPos(q_es, EST);
-	if (this->counter >= 1)
-	{
-		this->limb.setJointNumDerivatives(q_es, EST);
-	}else{
-	   	this->limb.setJointVel(this->ref_dq_Traj.col(this->counter), EST);
-	   	this->limb.setJointAcc(this->ref_ddq_Traj.col(this->counter), EST);
-	}
+	this->limb.setJointVel(dq_es, EST);
+//	if (this->counter >= 1)
+//	{
+//		this->limb.setJointNumDerivatives(q_es, EST);
+//	}else{
+//	   	this->limb.setJointVel(this->ref_dq_Traj.col(this->counter), EST);
+//	   	this->limb.setJointAcc(this->ref_ddq_Traj.col(this->counter), EST);
+//	}
 	this->limb.refreshSensors(REF);
 	this->limb.refreshSensors(EST);
 
@@ -394,4 +393,3 @@ void limb_NLP::finalize_solution(
 	   std::cout << "f(x*) = " << obj_value << std::endl;
 	   this->residuals.push_back(obj_value);
 }
-

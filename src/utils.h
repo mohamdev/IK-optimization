@@ -40,6 +40,7 @@
 #ifndef PINOCCHIO_MODEL_DIR
 #define PINOCCHIO_MODEL_DIR "path_to_the_model_dir"
 #endif
+#define dT (double)(1.0/60.0)
 using namespace CppAD;
 
 using namespace std;
@@ -141,7 +142,16 @@ Eigen::Matrix<Base,Eigen::Dynamic,1> rot2quat_tmpl(Eigen::Matrix<Base,Eigen::Dyn
 };
 
 void plotData(ScalarMatrix const & Q_estimated, ScalarMatrix const & Q_reference, ScalarMatrix const & estimatedMeasurement, ScalarMatrix const & referenceMeasurement, ScalarMatrix const & sensorMeasurement);
-
+void plotData(ScalarMatrix const & Q_estimated,
+		ScalarMatrix const & Q_reference,
+		ScalarMatrix const & dq_estimated,
+		ScalarMatrix const & dq_reference,
+		ScalarMatrix const & ddq_estimated,
+		ScalarMatrix const & ddq_reference,
+		ScalarMatrix const & estimatedMeasurement,
+		ScalarMatrix const & referenceMeasurement,
+		ScalarMatrix const & sensorMeasurement
+		);
 ScalarMatrix read_data(std::string const & filePath, std::string const & dataType);
 std::fstream& GotoLine(std::fstream& file, unsigned int const & num);
 ScalarMatrix readTrajFromCSV(int const & trajIndex, std::string const & typeTraj);
